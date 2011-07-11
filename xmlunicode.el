@@ -1,6 +1,6 @@
 ;;; xmlunicode.el --- Unicode support for XML -*- coding: utf-8 -*-
 
-;; $Id: xmlunicode.el,v 1.8 2003/11/11 10:47:15 ndw Exp $
+;; $Id: xmlunicode.el,v 1.9 2004/07/21 12:03:11 ndw Exp $
 
 ;; Copyright (C) 2003 Norman Walsh
 ;; Inspired in part by sgml-input, Copyright (C) 2001 Dave Love
@@ -8,9 +8,9 @@
 
 ;; Author: Norman Walsh <ndw@nwalsh.com>
 ;; Maintainer: Norman Walsh <ndw@nwalsh.com>
-;; Created: 2003-09-29
-;; Version: 1.4
-;; CVS ID: $Id: xmlunicode.el,v 1.8 2003/11/11 10:47:15 ndw Exp $
+;; Created: 2004-07-21
+;; Version: 1.5
+;; CVS ID: $Id: xmlunicode.el,v 1.9 2004/07/21 12:03:11 ndw Exp $
 ;; Keywords: utf-8 unicode xml characters
 
 ;; This file is NOT part of GNU emacs.
@@ -93,6 +93,11 @@
 
 ;;; Changes
 
+;; v1.5
+;;   Fixed bug in unicode-smart-single-quote. It wasn't cycling through all
+;;   three quotes correctly because of a typo in the function definition.
+;;   Make sure smart semicolon insertion only happens if we're right at the
+;;   end of a numeric character reference.
 ;; v1.4
 ;;   Fixed bug in insert-smart-semicolon. It wasn't careful to tie the search
 ;;   to the most recent preceding ampersand.
@@ -327,6 +332,7 @@
     ("mdash"     . #x2014)
     ("micro"     . #x00B5)
     ("middot"    . #x00B7)
+    ("nbsp"      . #x00A0)
     ("ndash"     . #x2013)
     ("not"       . #x00AC)
     ("numsp"     . #x2007)
@@ -422,6 +428,18 @@
 	(> pcmt pgt)
       pcmt)))
 
+;;stolen from hen.el which in turn claims to have stolen it from cxref
+(defun unicode-looking-backward-at (regexp)
+  "Return t if text before point matches regular expression REGEXP.
+This function modifies the match data that `match-beginning',
+`match-end' and `match-data' access; save and restore the match
+data if you want to preserve them."
+  (save-excursion
+    (let ((here (point)))
+      (if (re-search-backward regexp (point-min) t)
+          (if (re-search-forward regexp here t)
+              (= (point) here))))))
+
 ;; Smart quotes
 
 (defun unicode-smart-double-quote ()
@@ -495,7 +513,7 @@
 	  (progn
 	    (delete-backward-char 1)
 	    (insert "'")))
-	 ((char-equal ch unicode-quot)
+	 ((char-equal ch unicode-apos)
 	  (progn
 	    (delete-backward-char 1)
 	    (insert unicode-rsquo)))
@@ -567,30 +585,36 @@
     (setq amppos (point))
     (goto-char pos)
     (cond
-     ((re-search-backward "&#[xX]\\([0-9a-fA-F]+\\)" nil t nil)
-      (if (= amppos (point))
+     ((unicode-looking-backward-at "&#[xX][0-9a-fA-F]+")
+      (progn
+	(insert "ok1")
+	(re-search-backward "&#[xX]\\([0-9a-fA-F]+\\)" nil t nil)
+	(if (= amppos (point))
+	    (progn
+	      (setq codept (string-to-number (match-string 1) 16))
+	      (if (memq codept unicode-glyph-list)
+		  (replace-match (format "%c" (decode-char 'ucs codept)))
+		(progn
+		  (goto-char pos)
+		  (insert ";"))))
 	  (progn
-	    (setq codept (string-to-number (match-string 1) 16))
-	    (if (memq codept unicode-glyph-list)
-		(replace-match (format "%c" (decode-char 'ucs codept)))
-	      (progn
-		(goto-char pos)
-		(insert ";"))))
-	(progn
-	  (goto-char pos)
-	  (insert ";"))))
-     ((re-search-backward "&#\\([0-9]+\\)" nil t nil)
-      (if (= amppos (point))
+	    (goto-char pos)
+	    (insert ";")))))
+     ((unicode-looking-backward-at "&#[0-9]+")
+      (progn
+	(insert "ok2")
+	(re-search-backward "&#\\([0-9]+\\)" nil t nil)
+	(if (= amppos (point))
+	    (progn
+	      (setq codept (string-to-number (match-string 1) 10))
+	      (if (memq codept unicode-glyph-list)
+		  (replace-match (format "%c" (decode-char 'ucs codept)))
+		(progn
+		  (goto-char pos)
+		  (insert ";"))))
 	  (progn
-	    (setq codept (string-to-number (match-string 1) 10))
-	    (if (memq codept unicode-glyph-list)
-		(replace-match (format "%c" (decode-char 'ucs codept)))
-	      (progn
-		(goto-char pos)
-		(insert ";"))))
-	(progn
-	  (goto-char pos)
-	  (insert ";"))))
+	    (goto-char pos)
+	    (insert ";")))))
      (t
       (insert ";")))))
 
