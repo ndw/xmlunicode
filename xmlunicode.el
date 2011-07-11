@@ -1,6 +1,6 @@
 ;;; xmlunicode.el --- Unicode support for XML -*- coding: utf-8 -*-
 
-;; $Id: xmlunicode.el,v 1.9 2004/07/21 12:03:11 ndw Exp $
+;; $Id: xmlunicode.el,v 1.10 2004/07/21 23:40:08 ndw Exp $
 
 ;; Copyright (C) 2003 Norman Walsh
 ;; Inspired in part by sgml-input, Copyright (C) 2001 Dave Love
@@ -9,8 +9,8 @@
 ;; Author: Norman Walsh <ndw@nwalsh.com>
 ;; Maintainer: Norman Walsh <ndw@nwalsh.com>
 ;; Created: 2004-07-21
-;; Version: 1.5
-;; CVS ID: $Id: xmlunicode.el,v 1.9 2004/07/21 12:03:11 ndw Exp $
+;; Version: 1.6
+;; CVS ID: $Id: xmlunicode.el,v 1.10 2004/07/21 23:40:08 ndw Exp $
 ;; Keywords: utf-8 unicode xml characters
 
 ;; This file is NOT part of GNU emacs.
@@ -93,6 +93,8 @@
 
 ;;; Changes
 
+;; v1.6
+;;   Remove debugging code. Embarrassed again. :-(
 ;; v1.5
 ;;   Fixed bug in unicode-smart-single-quote. It wasn't cycling through all
 ;;   three quotes correctly because of a typo in the function definition.
@@ -587,7 +589,6 @@ data if you want to preserve them."
     (cond
      ((unicode-looking-backward-at "&#[xX][0-9a-fA-F]+")
       (progn
-	(insert "ok1")
 	(re-search-backward "&#[xX]\\([0-9a-fA-F]+\\)" nil t nil)
 	(if (= amppos (point))
 	    (progn
@@ -602,7 +603,6 @@ data if you want to preserve them."
 	    (insert ";")))))
      ((unicode-looking-backward-at "&#[0-9]+")
       (progn
-	(insert "ok2")
 	(re-search-backward "&#\\([0-9]+\\)" nil t nil)
 	(if (= amppos (point))
 	    (progn
