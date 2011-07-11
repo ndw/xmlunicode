@@ -93,6 +93,10 @@
 
 ;;; Changes
 
+;; v1.7
+;;   Require "cl" because, well, because it's required. Also fiddled with
+;;   the way single quotes are handled; the apostrophe is now part of the
+;;   cycle
 ;; v1.6
 ;;   Remove debugging code. Embarrassed again. :-(
 ;; v1.5
@@ -119,12 +123,15 @@
 
 ;;; Code:
 
+(require 'cl)
+
 (defvar unicode-ldquo  (decode-char 'ucs #x00201c))
 (defvar unicode-rdquo  (decode-char 'ucs #x00201d))
 (defvar unicode-lsquo  (decode-char 'ucs #x002018))
 (defvar unicode-rsquo  (decode-char 'ucs #x002019))
 (defvar unicode-quot   (decode-char 'ucs #x000022))
 (defvar unicode-apos   (decode-char 'ucs #x000027))
+(defvar unicode-capos  (decode-char 'ucs #x0002bc))
 (defvar unicode-ndash  (decode-char 'ucs #x002013))
 (defvar unicode-mdash  (decode-char 'ucs #x002014))
 (defvar unicode-hellip (decode-char 'ucs #x002026))
@@ -489,7 +496,7 @@ data if you want to preserve them."
     (insert unicode-ldquo)))
 
 (defun unicode-smart-single-quote ()
-  "Insert a left or right single quote as appropriate. Left quotes are inserted after a space, newline, or start tag. Right quotes are inserted after any other character, except if the preceding character is a quote, in which case we cycle through the three quote styles."
+  "Insert a left or right single quote, or an apostrophe, as appropriate. Left quotes are inserted after a space, newline, or start tag. An apostrophe is inserted after any other character, except if the preceding character is a quote or apostrophe, in which case we cycle through the styles."
   (interactive)
   (if (char-before)
       (let ((ch (char-before)))
@@ -511,25 +518,19 @@ data if you want to preserve them."
 	 ((or (char-equal ch 32)
 	      (char-equal ch 10))
 	  (insert unicode-lsquo))
-	 ((char-equal ch unicode-lsquo)
-	  (progn
-	    (delete-backward-char 1)
-	    (insert "'")))
-	 ((char-equal ch unicode-apos)
+	 ((char-equal ch unicode-apos)  ; ' -> rsquo
 	  (progn
 	    (delete-backward-char 1)
 	    (insert unicode-rsquo)))
-	 ((char-equal ch unicode-rsquo)
+	 ((char-equal ch unicode-rsquo) ; rsquo -> lsquo
 	  (progn
 	    (delete-backward-char 1)
 	    (insert unicode-lsquo)))
-	 ((char-equal ch unicode-lsquo)
+	 ((char-equal ch unicode-lsquo) ; lsquo -> '
 	  (progn
 	    (delete-backward-char 1)
-	    (insert unicode-rsquo)))
-	 ((char-equal ch unicode-lsquo)
-	  (insert unicode-lsquo))
-	 (t (insert unicode-rsquo))))
+	    (insert unicode-apos)))
+	 (t (insert unicode-apos))))
     (insert unicode-lsquo)))
 
 (defun unicode-smart-hyphen ()
