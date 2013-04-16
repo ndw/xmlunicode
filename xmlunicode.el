@@ -1,16 +1,14 @@
 ;;; xmlunicode.el --- Unicode support for XML -*- coding: utf-8 -*-
 
-;; $Id: xmlunicode.el,v 1.10 2004/07/21 23:40:08 ndw Exp $
-
 ;; Copyright (C) 2003 Norman Walsh
 ;; Inspired in part by sgml-input, Copyright (C) 2001 Dave Love
 ;; Inspired in part by http://www.tbray.org/ongoing/When/200x/2003/09/27/UniEmacs
 
 ;; Author: Norman Walsh <ndw@nwalsh.com>
 ;; Maintainer: Norman Walsh <ndw@nwalsh.com>
+;; Contributor: Mark A. Hershberger <mah@everybody.org>
 ;; Created: 2004-07-21
-;; Version: 1.6
-;; CVS ID: $Id: xmlunicode.el,v 1.10 2004/07/21 23:40:08 ndw Exp $
+;; Version: 1.11
 ;; Keywords: utf-8 unicode xml characters
 
 ;; This file is NOT part of GNU emacs.
@@ -93,6 +91,10 @@
 
 ;;; Changes
 
+;; v1.11
+;;   Fix up some compile warnings and deprecations that modern emacs
+;;   reveals.  Also found a cut-n-paste bug in the ununsed
+;;   unicode-to-codepoints.
 ;; v1.7
 ;;   Require "cl" because, well, because it's required. Also fiddled with
 ;;   the way single quotes are handled; the apostrophe is now part of the
