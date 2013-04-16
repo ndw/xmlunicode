@@ -123,7 +123,7 @@
 
 ;;; Code:
 
-(require 'cl)
+(eval-when-compile (require 'cl))
 
 (defvar unicode-ldquo  (decode-char 'ucs #x00201c))
 (defvar unicode-rdquo  (decode-char 'ucs #x00201d))
@@ -142,11 +142,8 @@
 (defvar xml-tag-search-limit 4096
   "Maximum distance to search from point for tag start characters")
 
-(defvar unicode-character-list-file "/define/this/before/you/load/me"
-  "The name of the file that contains your unicode-character-list. unichars.el should be available where you got this file.")
-
-(if (not (boundp 'unicode-character-list))
-    (load-file unicode-character-list-file))
+(unless (boundp 'unicode-character-list)
+  (load-file "unichars.el"))            ; Should load from the same directory
 
 (defvar unicode-character-alist '()
   "Mapping of Unicode character names to codepoints.")
@@ -191,7 +188,7 @@
     (setq codepoint-list (list 0))
     (while unilist
       (nconc codepoint-list
-	     (list (cdr (assoc (car isolist) unicode-character-alist))))
+	     (list (cdr (assoc (car unilist) unicode-character-alist))))
       (setq unilist (cdr unilist)))
     (cdr codepoint-list)))
 
@@ -305,7 +302,7 @@
   (let ((glyph (memq codepoint unicode-glyph-list)))
     (cond
      ((and (decode-char 'ucs codepoint) (or arg glyph))
-      (ucs-insert codepoint))
+      (insert-char codepoint))
      ((= codepoint 34)
       (insert "&quot;"))
      ((= codepoint 38)
@@ -476,19 +473,19 @@ data if you want to preserve them."
 	  (insert unicode-ldquo))
 	 ((char-equal ch unicode-ldquo)
 	  (progn
-	    (delete-backward-char 1)
+	    (delete-char -1)
 	    (insert "\"")))
 	 ((char-equal ch unicode-quot)
 	  (progn
-	    (delete-backward-char 1)
+	    (delete-char -1)
 	    (insert unicode-rdquo)))
 	 ((char-equal ch unicode-rdquo)
 	  (progn
-	    (delete-backward-char 1)
+	    (delete-char -1)
 	    (insert unicode-ldquo)))
 	 ((char-equal ch unicode-ldquo)
 	  (progn
-	    (delete-backward-char 1)
+	    (delete-char -1)
 	    (insert unicode-rdquo)))
 	 ((char-equal ch unicode-lsquo)
 	  (insert unicode-ldquo))
@@ -520,15 +517,15 @@ data if you want to preserve them."
 	  (insert unicode-lsquo))
 	 ((char-equal ch unicode-apos)  ; ' -> rsquo
 	  (progn
-	    (delete-backward-char 1)
+	    (delete-char -1)
 	    (insert unicode-rsquo)))
 	 ((char-equal ch unicode-rsquo) ; rsquo -> lsquo
 	  (progn
-	    (delete-backward-char 1)
+	    (delete-char -1)
 	    (insert unicode-lsquo)))
 	 ((char-equal ch unicode-lsquo) ; lsquo -> '
 	  (progn
-	    (delete-backward-char 1)
+	    (delete-char -1)
 	    (insert unicode-apos)))
 	 (t (insert unicode-apos))))
     (insert unicode-lsquo)))
@@ -543,15 +540,15 @@ data if you want to preserve them."
 	  (insert "-"))
 	 ((char-equal ch ?-)
 	  (progn
-	    (delete-backward-char 1)
+	    (delete-char -1)
 	    (insert unicode-mdash)))
 	 ((char-equal ch unicode-mdash)
 	  (progn
-	    (delete-backward-char 1)
+	    (delete-char -1)
 	    (insert unicode-ndash)))
 	 ((char-equal ch unicode-ndash)
 	  (progn
-	    (delete-backward-char 1)
+	    (delete-char -1)
 	    (insert "-")))
 	 (t (insert "-"))))
     (insert "-")))
@@ -568,13 +565,13 @@ data if you want to preserve them."
 	  (insert "."))
 	 ((char-equal ch1 unicode-hellip)
 	  (progn
-	    (delete-backward-char 1)
+	    (delete-char -1)
 	    (insert "....")))
 	 ((and ch3 (char-equal ch1 ?.) (char-equal ch2 ?.) (char-equal ch3 ?.))
 	  (insert "."))
 	 ((and (char-equal ch1 ?.) (char-equal ch2 ?.))
 	  (progn
-	    (delete-backward-char 2)
+	    (delete-char -2)
 	    (insert unicode-hellip)))
 	 (t (insert "."))))
     (insert ".")))
@@ -780,7 +777,7 @@ data if you want to preserve them."
       (if (< codept #xffff)
 	  (progn
 	    (insert (format "#x%06x " codept))
-	    (ucs-insert codept)
+	    (insert-char codept)
 	    (insert (format " %s\n" name)))))))
 
 ;; EOF
