@@ -782,4 +782,5 @@ data if you want to preserve them."
 	    (insert-char codept)
 	    (insert (format " %s\n" name)))))))
 
-;; EOF
+;;; xmlunicode.el ends here
+
