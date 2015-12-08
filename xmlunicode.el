@@ -145,7 +145,10 @@
   "Maximum distance to search from point for tag start characters")
 
 (unless (boundp 'unicode-character-list)
-  (load-file "unichars.el"))            ; Should load from the same directory
+  (require 'xmlunicode-character-list))
+
+(unless (boundp 'unicode-missing-list)
+  (require 'xmlunicode-missing-list))
 
 (defvar unicode-character-alist '()
   "Mapping of Unicode character names to codepoints.")
@@ -194,79 +197,10 @@
       (setq unilist (cdr unilist)))
     (cdr codepoint-list)))
 
-(defvar unicode-glyph-list
-  (append
-   '(?A ?B ?C ?D ?E ?F ?G ?H ?I ?J ?K ?L ?M
-     ?N ?O ?P ?Q ?R ?S ?T ?U ?V ?W ?X ?Y ?Z
-     ?a ?b ?c ?d ?e ?f ?g ?h ?i ?j ?k ?l ?m
-     ?n ?o ?p ?q ?r ?s ?t ?u ?v ?w ?x ?y ?z
-     ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?! ?@ ?#
-     ?$ ?% ?^ ?* ?( ?) ?- ?_ ?= ?+ ?\ ?|
-     ?[ ?] ?{ ?} 59 ?: ?/ ?? ?. 44 96 126)
-   (iso8879-to-codepoints
-    '("AElig"  "Aacute" "Abreve" "Acirc"  "Agrave"  "Amacr"  "Aogon"
-      "Aring"  "Atilde" "Auml"   "Cacute" "Ccaron"  "Ccedil" "Ccirc"
-      "Cdot"   "Dagger" "Dcaron" "Dot"    "Dstrok"  "ENG"    "ETH"
-      "Eacute" "Ecaron" "Ecirc"  "Edot"   "Egrave"  "Emacr"  "Eogon"
-      "Euml"   "Gbreve" "Gcedil" "Gcirc"  "Gdot"    "Hcirc"
-      "Hstrok" "IJlig"  "Iacute" "Icirc"  "Idot"    "Igrave"
-      "Imacr"  "Iogon"  "Itilde" "Iuml"   "Jcirc"   "Kcedil"
-      "Lacute" "Lcaron" "Lcedil" "Lmidot" "Lstrok"  "Nacute"
-      "Ncaron" "Ncedil" "Ntilde" "OElig"  "Oacute"  "Ocirc"
-      "Odblac" "Ograve" "Omacr"  "Oslash" "Otilde"  "Ouml"
-      "Racute" "Rcaron" "Rcedil" "Sacute" "Scaron"  "Scedil"
-      "Scirc"  "THORN"  "Tcaron" "Tcedil" "Tstrok"  "Uacute"
-      "Ubreve" "Ucirc"  "Udblac" "Ugrave" "Umacr"   "Uogon"
-      "Uring"  "Utilde" "Uuml"   "Wcirc"  "Yacute"  "Ycirc"
-      "Yuml"   "Zacute" "Zcaron" "Zdot"   "aacute"  "abreve"
-      "acirc"  "acute"  "aelig"  "agrave" "amacr"   "angst"
-      "aogon"           "aring"  "ast"    "atilde"  "auml"
-      "b.mu"   "bdquo"  "blank"  "blk12"  "blk14"   "blk34"
-      "block"  "boxDL"  "boxDR"  "boxH"   "boxHD"   "boxHU"
-      "boxUL"  "boxUR"  "boxV"   "boxVH"  "boxVL"   "boxVR"
-      "boxVh"  "boxdl"  "boxdr"  "boxh"   "boxhd"   "boxhu"
-      "boxul"  "boxur"  "boxv"   "boxvH"  "boxvh"   "boxvl"
-      "boxvr"  "breve"  "brvbar" "bsol"   "bull"    "cacute"
-      "caron"  "ccaron" "ccedil" "ccirc"  "cdot"    "cedil"
-      "cent"   "circ"   "colon"  "comma"  "commat"  "copy"
-      "curren" "dagger" "dash"   "dblac"  "dcaron"  "deg"
-      "die"    "divide" "dollar" "dot"    "dstrok"  "eacute"
-      "ecaron" "ecirc"  "edot"   "egrave" "emacr"   "emsp"
-      "emsp13" "emsp14" "eng"    "ensp"   "eogon"   "equals"
-      "equiv"  "eth"    "euml"   "excl"   "exist"   "fnof"
-      "forall" "frac12" "frac14" "frac34" "frasl"   "gacute"
-      "gbreve" "gcedil" "gcirc"  "gdot"   "ge"      "ges"
-      "grave"           "hairsp" "half"   "hcirc"   "hellip"
-      "horbar" "hstrok" "hyphen" "iacute" "icirc"   "iexcl"
-      "igrave" "ijlig"  "imacr"  "inodot" "inodot"  "iogon"
-      "iquest" "itilde" "iuml"   "jcirc"  "kcedil"  "kgreen"
-      "lacute" "laquo"  "lcaron" "lcedil" "lcub"    "ldquo"
-      "ldquor" "le"     "les"    "lhblk"  "lmidot"  "lowbar"
-      "lpar"   "lsaquo" "lsqb"   "lsquo"  "lsquor"  "lstrok"
-      "macr"   "mdash"  "mgr"    "micro"  "middot"  "minus"
-      "mldr"   "mu"     "nacute" "napos"  "nbsp"    "ncaron"
-      "ncedil" "ndash"  "ne"     "nequiv" "nexist"  "nge"
-      "nges"   "ngt"    "nle"    "nles"   "nlt"     "not"
-      "ntilde" "num"    "numsp"  "oacute" "ocirc"   "odblac"
-      "oelig"  "ogon"   "ograve" "omacr"  "ordf"    "ordm"
-      "oslash" "otilde" "ouml"   "para"   "percnt"  "period"
-      "permil" "plus"   "plusmn" "pound"  "puncsp"  "quest"
-               "racute" "raquo"  "rcaron" "rcedil"  "rcub"
-      "rdquo"  "rdquor" "reg"    "ring"   "rpar"    "rsaquo"
-      "rsqb"   "rsquo"  "rsquor" "sacute" "sbquo"   "sbsol"
-      "scaron" "scedil" "scirc"  "sect"   "semi"    "shy"
-      "sol"    "sup1"   "sup2"   "sup3"   "szlig"   "tcaron"
-      "tcedil" "thinsp" "thorn"  "tilde"  "times"   "trade"
-      "tstrok" "uacute" "ubreve" "ucirc"  "udblac"  "ugrave"
-      "uhblk"  "umacr"  "uml"    "uogon"  "uring"   "utilde"
-      "uuml"   "verbar" "wcirc"  "wedgeq" "yacute"  "ycirc"
-      "yen"    "yuml"   "zacute" "zcaron" "zdot")))
-  "A list of Unicode codepoints identifying the characters that display correctly in your Emacs with your fonts.")
-
 ;; Insert characters by Unicode name (with completion)
 
 (defun unicode-character-insert (arg &optional argname)
-  "Insert a Unicode character by character name. If a prefix is given, the character will be inserted regardless of whether or not it has a displayable glyph; otherwise, a numeric character reference is inserted if the codepoint is not in the unicode-glyph-list. If argname is given, it is used for the prompt. If argname uniquely identifies a character, that character is inserted without the prompt."
+  "Insert a Unicode character by character name. If a prefix is given, the character will be inserted regardless of whether or not it has a displayable glyph; otherwise, a numeric character reference is inserted if the codepoint is in the unicode-missing-list. If argname is given, it is used for the prompt. If argname uniquely identifies a character, that character is inserted without the prompt."
   (interactive "P")
   (let* ((completion-ignore-case t)
 	 (uniname (if (stringp argname) argname ""))
@@ -284,7 +218,7 @@
 ;; Insert characters by iso8879 name
 
 (defun iso8879-character-insert (arg &optional argname)
-  "Insert a Unicode character by ISO 8879 entity name. If a prefix is given, the character will be inserted regardless of whether or not it has a displayable glyph; otherwise, a numeric character reference is inserted if the codepoint is not in the unicode-glyph-list. If argname is given, it is used for the prompt. If argname uniquely identifies a character, that character is inserted without the prompt."
+  "Insert a Unicode character by ISO 8879 entity name. If a prefix is given, the character will be inserted regardless of whether or not it has a displayable glyph; otherwise, a numeric character reference is inserted if the codepoint is in the unicode-missing-list. If argname is given, it is used for the prompt. If argname uniquely identifies a character, that character is inserted without the prompt."
   (interactive "P")
   (let* ((isoname (if (stringp argname) argname ""))
 	 (charname
@@ -301,9 +235,9 @@
 (defun xml-unicode-insert (arg codepoint)
   "Insert the Unicode character identified by codepoint taking into account available glyphs and XML predefined entities."
   (interactive "P")
-  (let ((glyph (memq codepoint unicode-glyph-list)))
+  (let ((missing-glyph (memq codepoint unicode-missing-list)))
     (cond
-     ((and (decode-char 'ucs codepoint) (or arg glyph))
+     ((and (decode-char 'ucs codepoint) (or arg (not missing-glyph)))
       (insert-char codepoint))
      ((= codepoint 34)
       (insert "&quot;"))
@@ -593,7 +527,7 @@ data if you want to preserve them."
 	(if (= amppos (point))
 	    (progn
 	      (setq codept (string-to-number (match-string 1) 16))
-	      (if (memq codept unicode-glyph-list)
+	      (if (not (memq codept unicode-missing-list))
 		  (replace-match (format "%c" (decode-char 'ucs codept)))
 		(progn
 		  (goto-char pos)
@@ -607,7 +541,7 @@ data if you want to preserve them."
 	(if (= amppos (point))
 	    (progn
 	      (setq codept (string-to-number (match-string 1) 10))
-	      (if (memq codept unicode-glyph-list)
+	      (if (not (memq codept unicode-missing-list))
 		  (replace-match (format "%c" (decode-char 'ucs codept)))
 		(progn
 		  (goto-char pos)
@@ -628,17 +562,17 @@ data if you want to preserve them."
  nil t nil nil nil nil nil nil nil nil t)
 
 (defvar xml-quail-define-rules '()
-  "The default xml-input rules. Built dynamically from the unicode-character-list and the unicode-glyph-list.")
+  "The default xml-input rules. Built dynamically from the unicode-character-list and the unicode-missing-list.")
 
 (let ((ulist iso8879-character-alist)
-      codepoint glyph entname)
+      codepoint missing-glyph entname)
   (setq xml-quail-define-rules (list 'quail-define-rules))
   (while ulist
     (setq codepoint (cdr (car ulist)))
-    (setq glyph (memq codepoint unicode-glyph-list))
+    (setq missing-glyph (memq codepoint unicode-missing-list))
     (setq entname (concat "&" (car (car ulist)) ";"))
     (cond
-     ((and glyph (decode-char 'ucs codepoint))
+     ((and (not missing-glyph) (decode-char 'ucs codepoint))
       (nconc xml-quail-define-rules
 	     (list (list entname (decode-char 'ucs codepoint)))))
      ((= codepoint 34)
@@ -783,4 +717,6 @@ data if you want to preserve them."
 	    (insert (format " %s\n" name)))))))
 
 ;;; xmlunicode.el ends here
+
+(provide 'xmlunicode)
 

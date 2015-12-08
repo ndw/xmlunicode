@@ -8,13 +8,15 @@ contexts other than XML, but the focus here is on XML.
 
 You're most likely going to want to bind some or all of them to keys.
 
+See also: CHANGES.md
+
 unicode-character-insert
 ------------------------
 
 Insert a Unicode character by character name. If a prefix is given,
 the character will be inserted regardless of whether or not it has a
 displayable glyph; otherwise, a numeric character reference is
-inserted if the codepoint is not in the `unicode-glyph-list`.
+inserted if the codepoint is in the `unicode-missing-list`.
 
 I bind this to `ctl-t` `u`
 
@@ -28,7 +30,7 @@ iso8879-character-insert
 Insert a Unicode character by ISO 8879 entity name. If a prefix is
 given, the character will be inserted regardless of whether or not it
 has a displayable glyph; otherwise, a numeric character reference is
-inserted if the codepoint is not in the `unicode-glyph-list`.
+inserted if the codepoint is in the `unicode-missing-list`.
 
 I bind this to `ctl-t` `i`
 
