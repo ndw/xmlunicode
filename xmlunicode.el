@@ -720,5 +720,3 @@ data if you want to preserve them."
 (provide 'xmlunicode)
 ;;; xmlunicode.el ends here
 
-(provide 'xmlunicode)
-
