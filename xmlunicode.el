@@ -8,8 +8,8 @@
 ;; Maintainer: Norman Walsh <ndw@nwalsh.com>
 ;; Contributor: Mark A. Hershberger <mah@everybody.org>
 ;; Created: 2004-07-21
-;; Updated: 2015-12-08
-;; Version: 1.13
+;; Updated: 2016-01-08
+;; Version: 1.14
 ;; Keywords: utf-8 unicode xml characters
 
 ;; This file is NOT part of GNU emacs.
@@ -94,6 +94,10 @@
 
 ;;; Changes
 
+;; v1.14
+;;   Added codepoint to the helm character list
+;;   Improved the xmlunicode-smart-hyphen function; just insert "-" if
+;;   preceded by two "-"s.
 ;; v1.13
 ;;   Fix all symbol names to have 'xmlunicode-' namespace prefix.
 ;;   Added xmlunicode-character-insert-helm to use helm for character prompt
@@ -477,25 +481,26 @@ data if you want to preserve them."
 (defun xmlunicode-smart-hyphen ()
   "Insert a hyphen, mdash, or ndash as appropriate. A hyphen, an mdash, and then an ndash is inserted."
   (interactive)
-  (if (char-before)
-      (let ((ch (char-before)))
-	(cond
-	 ((xmlunicode-in-comment)
-	  (insert "-"))
-	 ((char-equal ch ?-)
-	  (progn
-	    (delete-char -1)
-	    (insert xmlunicode-mdash)))
-	 ((char-equal ch xmlunicode-mdash)
-	  (progn
-	    (delete-char -1)
-	    (insert xmlunicode-ndash)))
-	 ((char-equal ch xmlunicode-ndash)
-	  (progn
-	    (delete-char -1)
-	    (insert "-")))
-	 (t (insert "-"))))
-    (insert "-")))
+  (let ((pchar (char-before))
+        (ppchar (char-before (- (point) 1))))
+    (cond
+     ((and (char-equal pchar ?-) (char-equal ppchar ?-))
+      (insert "-"))
+     ((xmlunicode-in-comment)
+      (insert "-"))
+     ((char-equal pchar xmlunicode-mdash)
+      (progn
+        (delete-char -1)
+        (insert xmlunicode-ndash)))
+     ((char-equal pchar xmlunicode-ndash)
+      (progn
+        (delete-char -1)
+        (insert "-")))
+     ((char-equal pchar ?-)
+      (progn (delete-char -1)
+             (insert xmlunicode-mdash)))
+     (t
+      (insert "-")))))
 
 (defun xmlunicode-smart-period ()
   "Insert an hellipsis for three dots."
@@ -734,9 +739,15 @@ data if you want to preserve them."
                     " "))
          (isostr  (if isoname
                       (concat " (" isoname ")")
+                    ""))
+         (cpstr   (if (> (length (format "%04X" char)) 4)
+                      (format " \\U%06X" char)
+                    (format " \\u%04X" char)))
+         (pad     (- 60 (length uniname) (length isostr)))
+         (padstr  (if (> pad 0)
+                      (make-string pad ?\s)
                     "")))
-    (cons (concat (concat charstr " ") uniname isostr) char)))
-
+    (cons (concat (concat charstr " ") uniname isostr padstr cpstr) char)))
 
 (defun xmlunicode-character-insert-helm (arg)
   "Insert unicode character with helm completion"
@@ -745,7 +756,7 @@ data if you want to preserve them."
                                :candidates (mapcar 'xmlunicode-make-helm-listitem
                                                    xmlunicode-character-list))
                     :prompt "Character name: "
-                    :buffer "*helm unicode characters*")))
+                    :buffer "*helm xlmunicode characters*")))
     (if item
         (xmlunicode-insert arg item))))
 
