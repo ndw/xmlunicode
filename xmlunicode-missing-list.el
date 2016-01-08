@@ -1,4 +1,4 @@
-(defvar unicode-missing-list
+(defvar xmlunicode-missing-list
   '(
     ;Codept  Unicode name
     #x0000 ; NULL

@@ -1,4 +1,4 @@
-(defvar unicode-character-list
+(defvar xmlunicode-character-list
   '(
     ;Codept   Unicode name                            ISO Name
     (#x000000 "NULL"                                   nil     )

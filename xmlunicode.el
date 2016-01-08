@@ -9,7 +9,7 @@
 ;; Contributor: Mark A. Hershberger <mah@everybody.org>
 ;; Created: 2004-07-21
 ;; Updated: 2015-12-08
-;; Version: 1.12
+;; Version: 1.13
 ;; Keywords: utf-8 unicode xml characters
 
 ;; This file is NOT part of GNU emacs.
@@ -37,12 +37,12 @@
 
 ;;; Usage
 
-;; 1. Before loading this file, make sure that the variable unicode-character-list is
-;;    defined. The unicode-character-list is a list of triples of the form:
+;; 1. Before loading this file, make sure that the variable xmlunicode-character-list is
+;;    defined. The xmlunicode-character-list is a list of triples of the form:
 ;;
 ;;    (codepoint "unicode name" "iso name") ; iso name can be nil
 ;;
-;;    e.g.:   (defvar unicode-character-list
+;;    e.g.:   (defvar xmlunicode-character-list
 ;;             '(
 ;;               ;Codept   Unicode name                            ISO Name
 ;;               (#x000000 "NULL"                                   nil     )
@@ -61,21 +61,23 @@
 ;;
 ;;    The likely candidates are:
 ;;
-;;    unicode-character-insert            insert a character by unicode name
-;;                                        (with completion)
-;;    iso8879-character-insert            insert a character by ISO entity name
-;;                                        (with completion)
-;;    unicode-smart-double-quote          inserts an appropriate double quote
-;;    unicode-smart-single-quote          inserts an appropriate single quote
-;;    unicode-character-menu-insert       choose special character from a popup menu
-;;    unicode-character-shortcut-insert   enter a two-character shortcut for a
-;;                                        unicode character
+;;    xmlunicode-character-insert            insert a character by unicode name
+;;                                           (with completion)
+;;    xmlunicode-character-insert-helm       insert a character by unicode name
+;;                                           using helm (with completion)
+;;    xmlunicode-iso8879-character-insert    insert a character by ISO entity name
+;;                                           (with completion)
+;;    xmlunicode-smart-double-quote          inserts an appropriate double quote
+;;    xmlunicode-smart-single-quote          inserts an appropriate single quote
+;;    xmlunicode-character-menu-insert       choose special character from a popup menu
+;;    xmlunicode-character-shortcut-insert   enter a two-character shortcut for a
+;;                                           unicode character
 ;;
 ;;    You can also create a standard Emacs menu for the character menu list
 ;;    (instead of, or in addition to, the popup). To do that:
 ;;
 ;;    (define-key APPROPRIATE-MAP [menu-bar unichar]
-;;      (cons "UniChar" unicode-character-menu-map))
+;;      (cons "UniChar" xmlunicode-character-menu-map))
 ;;
 ;;    Where APPROPRIATE-MAP is the name of the emacs keymap to bind into
 ;;
@@ -87,11 +89,16 @@
 ;;    in the appropriate context. Unlike sgml-input, xml-input only inserts the
 ;;    characters for which you have glyphs. It inserts other characters as numeric
 ;;    character references. (If you want to insert a literal character even if
-;;    you don't have it in your fonts, use unicode-character-insert or
-;;    iso8879-character-insert with a prefix.)
+;;    you don't have it in your fonts, use xmlunicode-character-insert or
+;;    xmlunicode-iso8879-character-insert with a prefix.)
 
 ;;; Changes
 
+;; v1.13
+;;   Fix all symbol names to have 'xmlunicode-' namespace prefix.
+;;   Added xmlunicode-character-insert-helm to use helm for character prompt
+;; v1.12
+;;   ???
 ;; v1.11
 ;;   Fix up some compile warnings and deprecations that modern emacs
 ;;   reveals.  Also found a cut-n-paste bug in the ununsed
@@ -111,7 +118,7 @@
 ;;   Fixed bug in insert-smart-semicolon. It wasn't careful to tie the search
 ;;   to the most recent preceding ampersand.
 ;; v1.3
-;;   Fixed bug in (in-comment)
+;;   Fixed bug in (xmlunicode-in-comment)
 ;;   Added unicode-smart-semicolon as another convenience for entering Unicode chars
 ;;   Added show-unicode-character-list
 ;; v1.2
@@ -128,115 +135,115 @@
 
 (eval-when-compile (require 'cl))
 
-(defvar unicode-ldquo  (decode-char 'ucs #x00201c))
-(defvar unicode-rdquo  (decode-char 'ucs #x00201d))
-(defvar unicode-lsquo  (decode-char 'ucs #x002018))
-(defvar unicode-rsquo  (decode-char 'ucs #x002019))
-(defvar unicode-quot   (decode-char 'ucs #x000022))
-(defvar unicode-apos   (decode-char 'ucs #x000027))
-(defvar unicode-capos  (decode-char 'ucs #x0002bc))
-(defvar unicode-ndash  (decode-char 'ucs #x002013))
-(defvar unicode-mdash  (decode-char 'ucs #x002014))
-(defvar unicode-hellip (decode-char 'ucs #x002026))
+(defvar xmlunicode-ldquo  (decode-char 'ucs #x00201c))
+(defvar xmlunicode-rdquo  (decode-char 'ucs #x00201d))
+(defvar xmlunicode-lsquo  (decode-char 'ucs #x002018))
+(defvar xmlunicode-rsquo  (decode-char 'ucs #x002019))
+(defvar xmlunicode-quot   (decode-char 'ucs #x000022))
+(defvar xmlunicode-apos   (decode-char 'ucs #x000027))
+(defvar xmlunicode-capos  (decode-char 'ucs #x0002bc))
+(defvar xmlunicode-ndash  (decode-char 'ucs #x002013))
+(defvar xmlunicode-mdash  (decode-char 'ucs #x002014))
+(defvar xmlunicode-hellip (decode-char 'ucs #x002026))
 
-(defvar unicode-charref-format "&#x%x;"
+(defvar xmlunicode-charref-format "&#x%x;"
   "The format for numeric character references")
 
 (defvar xml-tag-search-limit 4096
   "Maximum distance to search from point for tag start characters")
 
-(unless (boundp 'unicode-character-list)
+(unless (boundp 'xmlunicode-character-list)
   (require 'xmlunicode-character-list))
 
-(unless (boundp 'unicode-missing-list)
+(unless (boundp 'xmlunicode-missing-list)
   (require 'xmlunicode-missing-list))
 
-(defvar unicode-character-alist '()
+(defvar xmlunicode-character-alist '()
   "Mapping of Unicode character names to codepoints.")
 
-(let ((ulist unicode-character-list))
-  (setq unicode-character-alist
+(let ((ulist xmlunicode-character-list))
+  (setq xmlunicode-character-alist
 	(list (cons (cadr (car ulist)) (car (car ulist)))))
   (setq ulist (cdr ulist))
   (while ulist
-    (nconc unicode-character-alist
+    (nconc xmlunicode-character-alist
 	   (list (cons (cadr (car ulist)) (car (car ulist)))))
     (setq ulist (cdr ulist))))
 
-(defvar iso8879-character-alist '()
+(defvar xmlunicode-iso8879-character-alist '()
   "Mapping of ISO 8879 entity names names to codepoints.")
 
-(let ((ulist unicode-character-list))
+(let ((ulist xmlunicode-character-list))
   (while (and ulist (not (caddr (car ulist))))
     (setq ulist (cdr ulist)))
-  (setq iso8879-character-alist
+  (setq xmlunicode-iso8879-character-alist
 	(list (cons (caddr (car ulist)) (car (car ulist)))))
   (setq ulist (cdr ulist))
   (while ulist
     (if (caddr (car ulist))
-	(nconc iso8879-character-alist
+	(nconc xmlunicode-iso8879-character-alist
 	       (list (cons (caddr (car ulist)) (car (car ulist))))))
     (setq ulist (cdr ulist))))
 
-(defun iso8879-to-codepoints (&optional isolist)
+(defun xmlunicode-iso8879-to-codepoints (&optional isolist)
   "Converts a list of ISO 8879 entity names to a list of codepoints. This is a convenience function for defining the glyph list."
   (let (codepoint-list)
     (setq codepoint-list (list 0))
     (while isolist
       (nconc codepoint-list
-	     (list (cdr (assoc (car isolist) iso8879-character-alist))))
+	     (list (cdr (assoc (car isolist) xmlunicode-iso8879-character-alist))))
       (setq isolist (cdr isolist)))
     (cdr codepoint-list)))
 
-(defun unicode-to-codepoints (&optional unilist)
+(defun xmlunicode-to-codepoints (&optional unilist)
   "Converts a list of Unicode character names to a list of codepoints. This is a convenience function for defining the glyph list."
   (let (codepoint-list)
     (setq codepoint-list (list 0))
     (while unilist
       (nconc codepoint-list
-	     (list (cdr (assoc (car unilist) unicode-character-alist))))
+	     (list (cdr (assoc (car unilist) xmlunicode-character-alist))))
       (setq unilist (cdr unilist)))
     (cdr codepoint-list)))
 
 ;; Insert characters by Unicode name (with completion)
 
-(defun unicode-character-insert (arg &optional argname)
-  "Insert a Unicode character by character name. If a prefix is given, the character will be inserted regardless of whether or not it has a displayable glyph; otherwise, a numeric character reference is inserted if the codepoint is in the unicode-missing-list. If argname is given, it is used for the prompt. If argname uniquely identifies a character, that character is inserted without the prompt."
+(defun xmlunicode-character-insert (arg &optional argname)
+  "Insert a Unicode character by character name. If a prefix is given, the character will be inserted regardless of whether or not it has a displayable glyph; otherwise, a numeric character reference is inserted if the codepoint is in the xmlunicode-missing-list. If argname is given, it is used for the prompt. If argname uniquely identifies a character, that character is inserted without the prompt."
   (interactive "P")
   (let* ((completion-ignore-case t)
 	 (uniname (if (stringp argname) argname ""))
 	 (charname
-	  (if (eq (try-completion uniname unicode-character-alist) t)
+	  (if (eq (try-completion uniname xmlunicode-character-alist) t)
 	      uniname
 	    (completing-read
 	     "Unicode name: "
-	     unicode-character-alist
+	     xmlunicode-character-alist
 	     nil t uniname)))
 	 codepoint glyph)
-    (setq codepoint (cdr (assoc charname unicode-character-alist)))
-    (xml-unicode-insert arg codepoint)))
+    (setq codepoint (cdr (assoc charname xmlunicode-character-alist)))
+    (xmlunicode-insert arg codepoint)))
 
 ;; Insert characters by iso8879 name
 
-(defun iso8879-character-insert (arg &optional argname)
-  "Insert a Unicode character by ISO 8879 entity name. If a prefix is given, the character will be inserted regardless of whether or not it has a displayable glyph; otherwise, a numeric character reference is inserted if the codepoint is in the unicode-missing-list. If argname is given, it is used for the prompt. If argname uniquely identifies a character, that character is inserted without the prompt."
+(defun xmlunicode-xmlunicode-iso8879-character-insert (arg &optional argname)
+  "Insert a Unicode character by ISO 8879 entity name. If a prefix is given, the character will be inserted regardless of whether or not it has a displayable glyph; otherwise, a numeric character reference is inserted if the codepoint is in the xmlunicode-missing-list. If argname is given, it is used for the prompt. If argname uniquely identifies a character, that character is inserted without the prompt."
   (interactive "P")
   (let* ((isoname (if (stringp argname) argname ""))
 	 (charname
-	  (if (eq (try-completion isoname iso8879-character-alist) t)
+	  (if (eq (try-completion isoname xmlunicode-iso8879-character-alist) t)
 	      isoname
 	    (completing-read
 	     "ISO name: "
-	     iso8879-character-alist
+	     xmlunicode-iso8879-character-alist
 	     nil t isoname)))
 	 codepoint glyph)
-    (setq codepoint (cdr (assoc charname iso8879-character-alist)))
-    (xml-unicode-insert arg codepoint)))
+    (setq codepoint (cdr (assoc charname xmlunicode-iso8879-character-alist)))
+    (xmlunicode-insert arg codepoint)))
 
-(defun xml-unicode-insert (arg codepoint)
+(defun xmlunicode-insert (arg codepoint)
   "Insert the Unicode character identified by codepoint taking into account available glyphs and XML predefined entities."
   (interactive "P")
-  (let ((missing-glyph (memq codepoint unicode-missing-list)))
+  (let ((missing-glyph (memq codepoint xmlunicode-missing-list)))
     (cond
      ((and (decode-char 'ucs codepoint) (or arg (not missing-glyph)))
       (insert-char codepoint))
@@ -251,11 +258,11 @@
      ((= codepoint 62)
       (insert "&gt;"))
      (t
-      (insert (format unicode-charref-format codepoint))))))
+      (insert (format xmlunicode-charref-format codepoint))))))
 
 ;; Menus
 
-(defvar unicode-character-menu-alist
+(defvar xmlunicode-character-menu-alist
   '(
     ("angst"     . #x212B)
     ("cent"      . #x00A2)
@@ -293,34 +300,34 @@
     )
   "Mapping of names to codepoints for use in the popup or Emacs menu.")
 
-(defun  unicode-character-menu-insert ()
+(defun xmlunicode-character-menu-insert ()
   "Popup a menu for inserting unicode characters."
   (interactive)
   (let* ((xml-chars-menu
-	  (list "Special char" (append (list "") unicode-character-menu-alist)))
+	  (list "Special char" (append (list "") xmlunicode-character-menu-alist)))
 	 (value (x-popup-menu t xml-chars-menu)))
-    (if value (xml-unicode-insert nil value))))
+    (if value (xmlunicode-insert nil value))))
 
-(defvar unicode-character-menu-map (make-sparse-keymap "UniChar")
+(defvar xmlunicode-character-menu-map (make-sparse-keymap "UniChar")
   "A menu map for inserting Unicode characters.")
 
-(defun make-unicode-character-menu-bar ()
-  "Builds the unicode-character-menu-map for the currently defined unicode-character-menu-alist."
-  (let ((alist (reverse unicode-character-menu-alist))
+(defun xmlunicode-make-character-menu-bar ()
+  "Builds the xmlunicode-character-menu-map for the currently defined xmlunicode-character-menu-alist."
+  (let ((alist (reverse xmlunicode-character-menu-alist))
 	name codepoint)
-    (setq unicode-character-menu-map (make-sparse-keymap "UniChar"))
+    (setq xmlunicode-character-menu-map (make-sparse-keymap "UniChar"))
     (while alist
       (setq name (car (car alist))
 	    codepoint (cdr (car alist)))
-      (define-key unicode-character-menu-map (vector (intern name))
-	`(,name . (lambda () (interactive) (xml-unicode-insert nil ,codepoint))))
+      (define-key xmlunicode-character-menu-map (vector (intern name))
+	`(,name . (lambda () (interactive) (xmlunicode-insert nil ,codepoint))))
       (setq alist (cdr alist)))))
 
-(make-unicode-character-menu-bar)
+(xmlunicode-make-character-menu-bar)
 
 ;; Simple XML tests
 
-(defun in-start-tag ()
+(defun xmlunicode-in-start-tag ()
   "Crude test to see if point is inside an open start tag."
   (interactive)
   (let (slim here pgt plt)
@@ -337,7 +344,7 @@
 	(> plt pgt)
       plt)))
 
-(defun after-start-tag ()
+(defun xmlunicode-after-start-tag ()
   "Crude test to see if point is just after a start tag"
   (interactive)
   (if (and (char-before) (char-equal (char-before) ?>))
@@ -354,7 +361,7 @@
 	(or (and plt (not psl))
 	    (and plt psl (< psl plt))))))
 
-(defun in-comment ()
+(defun xmlunicode-in-comment ()
   "Crude test to see if point is inside a comment."
   (interactive)
   (let (slim here pgt pcmt)
@@ -372,7 +379,7 @@
       pcmt)))
 
 ;;stolen from hen.el which in turn claims to have stolen it from cxref
-(defun unicode-looking-backward-at (regexp)
+(defun xmlunicode-looking-backward-at (regexp)
   "Return t if text before point matches regular expression REGEXP.
 This function modifies the match data that `match-beginning',
 `match-end' and `match-data' access; save and restore the match
@@ -385,112 +392,112 @@ data if you want to preserve them."
 
 ;; Smart quotes
 
-(defun unicode-smart-double-quote ()
+(defun xmlunicode-smart-double-quote ()
   "Insert a left or right double quote as appropriate. Left quotes are inserted after a space, newline, or start tag. Right quotes are inserted after any other character, except if the preceding character is a quote, in which case we cycle through the three quote styles."
   (interactive)
   (if (char-before)
       (let ((ch (char-before)))
 	(cond
-	 ((in-start-tag)
+	 ((xmlunicode-in-start-tag)
 	  (insert "\""))
 	 ((or
-	   (after-start-tag)
+	   (xmlunicode-after-start-tag)
 	   (char-equal ch 40)  ; (
 	   (char-equal ch 91)  ; [
 	   (char-equal ch ?{)) ; {
-	  (insert unicode-ldquo))
+	  (insert xmlunicode-ldquo))
 	 ((or
 	   (char-equal ch ?>)  ; >
 	   (char-equal ch 41)  ; )
 	   (char-equal ch 93)  ; ]
 	   (char-equal ch ?})) ; }
-	  (insert unicode-rdquo))
+	  (insert xmlunicode-rdquo))
 	 ((or (char-equal ch 32)
 	      (char-equal ch 10))
-	  (insert unicode-ldquo))
-	 ((char-equal ch unicode-ldquo)
+	  (insert xmlunicode-ldquo))
+	 ((char-equal ch xmlunicode-ldquo)
 	  (progn
 	    (delete-char -1)
 	    (insert "\"")))
-	 ((char-equal ch unicode-quot)
+	 ((char-equal ch xmlunicode-quot)
 	  (progn
 	    (delete-char -1)
-	    (insert unicode-rdquo)))
-	 ((char-equal ch unicode-rdquo)
+	    (insert xmlunicode-rdquo)))
+	 ((char-equal ch xmlunicode-rdquo)
 	  (progn
 	    (delete-char -1)
-	    (insert unicode-ldquo)))
-	 ((char-equal ch unicode-ldquo)
+	    (insert xmlunicode-ldquo)))
+	 ((char-equal ch xmlunicode-ldquo)
 	  (progn
 	    (delete-char -1)
-	    (insert unicode-rdquo)))
-	 ((char-equal ch unicode-lsquo)
-	  (insert unicode-ldquo))
-	 (t (insert unicode-rdquo))))
-    (insert unicode-ldquo)))
+	    (insert xmlunicode-rdquo)))
+	 ((char-equal ch xmlunicode-lsquo)
+	  (insert xmlunicode-ldquo))
+	 (t (insert xmlunicode-rdquo))))
+    (insert xmlunicode-ldquo)))
 
-(defun unicode-smart-single-quote ()
+(defun xmlunicode-smart-single-quote ()
   "Insert a left or right single quote, or an apostrophe, as appropriate. Left quotes are inserted after a space, newline, or start tag. An apostrophe is inserted after any other character, except if the preceding character is a quote or apostrophe, in which case we cycle through the styles."
   (interactive)
   (if (char-before)
       (let ((ch (char-before)))
 	(cond
-	 ((in-start-tag)
+	 ((xmlunicode-in-start-tag)
 	  (insert "'"))
 	 ((or
-	   (after-start-tag)
+	   (xmlunicode-after-start-tag)
 	   (char-equal ch 40)  ; (
 	   (char-equal ch 91)  ; [
 	   (char-equal ch ?{)) ; {
-	  (insert unicode-lsquo))
+	  (insert xmlunicode-lsquo))
 	 ((or
 	   (char-equal ch ?>)  ; >
 	   (char-equal ch 41)  ; )
 	   (char-equal ch 93)  ; ]
 	   (char-equal ch ?})) ; }
-	  (insert unicode-rsquo))
+	  (insert xmlunicode-rsquo))
 	 ((or (char-equal ch 32)
 	      (char-equal ch 10))
-	  (insert unicode-lsquo))
-	 ((char-equal ch unicode-apos)  ; ' -> rsquo
+	  (insert xmlunicode-lsquo))
+	 ((char-equal ch xmlunicode-apos)  ; ' -> rsquo
 	  (progn
 	    (delete-char -1)
-	    (insert unicode-rsquo)))
-	 ((char-equal ch unicode-rsquo) ; rsquo -> lsquo
+	    (insert xmlunicode-rsquo)))
+	 ((char-equal ch xmlunicode-rsquo) ; rsquo -> lsquo
 	  (progn
 	    (delete-char -1)
-	    (insert unicode-lsquo)))
-	 ((char-equal ch unicode-lsquo) ; lsquo -> '
+	    (insert xmlunicode-lsquo)))
+	 ((char-equal ch xmlunicode-lsquo) ; lsquo -> '
 	  (progn
 	    (delete-char -1)
-	    (insert unicode-apos)))
-	 (t (insert unicode-apos))))
-    (insert unicode-lsquo)))
+	    (insert xmlunicode-apos)))
+	 (t (insert xmlunicode-apos))))
+    (insert xmlunicode-lsquo)))
 
-(defun unicode-smart-hyphen ()
+(defun xmlunicode-smart-hyphen ()
   "Insert a hyphen, mdash, or ndash as appropriate. A hyphen, an mdash, and then an ndash is inserted."
   (interactive)
   (if (char-before)
       (let ((ch (char-before)))
 	(cond
-	 ((in-comment)
+	 ((xmlunicode-in-comment)
 	  (insert "-"))
 	 ((char-equal ch ?-)
 	  (progn
 	    (delete-char -1)
-	    (insert unicode-mdash)))
-	 ((char-equal ch unicode-mdash)
+	    (insert xmlunicode-mdash)))
+	 ((char-equal ch xmlunicode-mdash)
 	  (progn
 	    (delete-char -1)
-	    (insert unicode-ndash)))
-	 ((char-equal ch unicode-ndash)
+	    (insert xmlunicode-ndash)))
+	 ((char-equal ch xmlunicode-ndash)
 	  (progn
 	    (delete-char -1)
 	    (insert "-")))
 	 (t (insert "-"))))
     (insert "-")))
 
-(defun unicode-smart-period ()
+(defun xmlunicode-smart-period ()
   "Insert an hellipsis for three dots."
   (interactive)
   (if (> (point) 2)
@@ -498,9 +505,9 @@ data if you want to preserve them."
 	    (ch2 (char-before (- (point) 1)))
 	    (ch3 (char-before (- (point) 2))))
 	(cond
-	 ((in-comment)
+	 ((xmlunicode-in-comment)
 	  (insert "."))
-	 ((char-equal ch1 unicode-hellip)
+	 ((char-equal ch1 xmlunicode-hellip)
 	  (progn
 	    (delete-char -1)
 	    (insert "....")))
@@ -509,11 +516,11 @@ data if you want to preserve them."
 	 ((and (char-equal ch1 ?.) (char-equal ch2 ?.))
 	  (progn
 	    (delete-char -2)
-	    (insert unicode-hellip)))
+	    (insert xmlunicode-hellip)))
 	 (t (insert "."))))
     (insert ".")))
 
-(defun unicode-smart-semicolon ()
+(defun xmlunicode-smart-semicolon ()
   "Detect numeric character references and replace them with the appropriate char."
   (interactive)
   (let ((pos (point))
@@ -522,13 +529,13 @@ data if you want to preserve them."
     (setq amppos (point))
     (goto-char pos)
     (cond
-     ((unicode-looking-backward-at "&#[xX][0-9a-fA-F]+")
+     ((xmlunicode-looking-backward-at "&#[xX][0-9a-fA-F]+")
       (progn
 	(re-search-backward "&#[xX]\\([0-9a-fA-F]+\\)" nil t nil)
 	(if (= amppos (point))
 	    (progn
 	      (setq codept (string-to-number (match-string 1) 16))
-	      (if (not (memq codept unicode-missing-list))
+	      (if (not (memq codept xmlunicode-missing-list))
 		  (replace-match (format "%c" (decode-char 'ucs codept)))
 		(progn
 		  (goto-char pos)
@@ -536,13 +543,13 @@ data if you want to preserve them."
 	  (progn
 	    (goto-char pos)
 	    (insert ";")))))
-     ((unicode-looking-backward-at "&#[0-9]+")
+     ((xmlunicode-looking-backward-at "&#[0-9]+")
       (progn
 	(re-search-backward "&#\\([0-9]+\\)" nil t nil)
 	(if (= amppos (point))
 	    (progn
 	      (setq codept (string-to-number (match-string 1) 10))
-	      (if (not (memq codept unicode-missing-list))
+	      (if (not (memq codept xmlunicode-missing-list))
 		  (replace-match (format "%c" (decode-char 'ucs codept)))
 		(progn
 		  (goto-char pos)
@@ -559,18 +566,18 @@ data if you want to preserve them."
 
 (quail-define-package
  "xml" "UTF-8" "&" t
- "Unicode characters input method using ISO 8879 entitie names from the unicode-character-list"
+ "Unicode characters input method using ISO 8879 entitie names from the xmlunicode-character-list"
  nil t nil nil nil nil nil nil nil nil t)
 
 (defvar xml-quail-define-rules '()
-  "The default xml-input rules. Built dynamically from the unicode-character-list and the unicode-missing-list.")
+  "The default xml-input rules. Built dynamically from the xmlunicode-character-list and the xmlunicode-missing-list.")
 
-(let ((ulist iso8879-character-alist)
+(let ((ulist xmlunicode-iso8879-character-alist)
       codepoint missing-glyph entname)
   (setq xml-quail-define-rules (list 'quail-define-rules))
   (while ulist
     (setq codepoint (cdr (car ulist)))
-    (setq missing-glyph (memq codepoint unicode-missing-list))
+    (setq missing-glyph (memq codepoint xmlunicode-missing-list))
     (setq entname (concat "&" (car (car ulist)) ";"))
     (cond
      ((and (not missing-glyph) (decode-char 'ucs codepoint))
@@ -593,117 +600,117 @@ data if you want to preserve them."
 	     (list (list entname (vector "&gt;")))))
      (t
       (nconc xml-quail-define-rules
-	     (list (list entname (vector (format unicode-charref-format codepoint)))))))
+	     (list (list entname (vector (format xmlunicode-charref-format codepoint)))))))
     (setq ulist (cdr ulist))))
 
 (eval xml-quail-define-rules)
 
 ;; Read two keys
 
-(defvar unicode-character-shortcut-alist
+(defvar xmlunicode-character-shortcut-alist
   (list
-   (cons "AE"  (cdr (assoc "AElig"  iso8879-character-alist)))
-   (cons "A'"  (cdr (assoc "Aacute" iso8879-character-alist)))
-   (cons "A^"  (cdr (assoc "Acirc"  iso8879-character-alist)))
-   (cons "A`"  (cdr (assoc "Agrave" iso8879-character-alist)))
-   (cons "Ao"  (cdr (assoc "Aring"  iso8879-character-alist)))
-   (cons "A~"  (cdr (assoc "Atilde" iso8879-character-alist)))
-   (cons "A\"" (cdr (assoc "Auml"   iso8879-character-alist)))
-   (cons "C,"  (cdr (assoc "Ccedil" iso8879-character-alist)))
-   (cons "E'"  (cdr (assoc "Eacute" iso8879-character-alist)))
-   (cons "E^"  (cdr (assoc "Ecirc"  iso8879-character-alist)))
-   (cons "E`"  (cdr (assoc "Egrave" iso8879-character-alist)))
-   (cons "E\"" (cdr (assoc "Euml"   iso8879-character-alist)))
-   (cons "I'"  (cdr (assoc "Iacute" iso8879-character-alist)))
-   (cons "I^"  (cdr (assoc "Icirc"  iso8879-character-alist)))
-   (cons "I`"  (cdr (assoc "Igrave" iso8879-character-alist)))
-   (cons "I\"" (cdr (assoc "Iuml"   iso8879-character-alist)))
-   (cons "N~"  (cdr (assoc "Ntilde" iso8879-character-alist)))
-   (cons "O'"  (cdr (assoc "Oacute" iso8879-character-alist)))
-   (cons "O^"  (cdr (assoc "Ocirc"  iso8879-character-alist)))
-   (cons "O`"  (cdr (assoc "Ograve" iso8879-character-alist)))
-   (cons "O/"  (cdr (assoc "Oslash" iso8879-character-alist)))
-   (cons "O~"  (cdr (assoc "Otilde" iso8879-character-alist)))
-   (cons "O\"" (cdr (assoc "Ouml"   iso8879-character-alist)))
-   (cons "U'"  (cdr (assoc "Uacute" iso8879-character-alist)))
-   (cons "U^"  (cdr (assoc "Ucirc"  iso8879-character-alist)))
-   (cons "U`"  (cdr (assoc "Ugrave" iso8879-character-alist)))
-   (cons "U\"" (cdr (assoc "Uuml"   iso8879-character-alist)))
-   (cons "Y'"  (cdr (assoc "Yacute" iso8879-character-alist)))
-   (cons "a'"  (cdr (assoc "aacute" iso8879-character-alist)))
-   (cons "a^"  (cdr (assoc "acirc"  iso8879-character-alist)))
-   (cons "ae"  (cdr (assoc "aelig"  iso8879-character-alist)))
-   (cons "a`"  (cdr (assoc  "agrave" iso8879-character-alist)))
-   (cons "ao"  (cdr (assoc "aring"  iso8879-character-alist)))
-   (cons "a~"  (cdr (assoc "atilde" iso8879-character-alist)))
-   (cons "a\"" (cdr (assoc "auml"   iso8879-character-alist)))
-   (cons "c,"  (cdr (assoc "ccedil" iso8879-character-alist)))
-   (cons "e'"  (cdr (assoc "eacute" iso8879-character-alist)))
-   (cons "e^"  (cdr (assoc "ecirc"  iso8879-character-alist)))
-   (cons "e`"  (cdr (assoc "egrave" iso8879-character-alist)))
-   (cons "e\"" (cdr (assoc "euml"   iso8879-character-alist)))
-   (cons "i'"  (cdr (assoc "iacute" iso8879-character-alist)))
-   (cons "i^"  (cdr (assoc "icirc"  iso8879-character-alist)))
-   (cons "i`"  (cdr (assoc "igrave" iso8879-character-alist)))
-   (cons "i\"" (cdr (assoc "iuml"   iso8879-character-alist)))
-   (cons "n~"  (cdr (assoc "ntilde" iso8879-character-alist)))
-   (cons "o'"  (cdr (assoc "oacute" iso8879-character-alist)))
-   (cons "o^"  (cdr (assoc "ocirc"  iso8879-character-alist)))
-   (cons "o`"  (cdr (assoc "ograve" iso8879-character-alist)))
-   (cons "o-"  (cdr (assoc "omacr"  iso8879-character-alist)))
-   (cons "o/"  (cdr (assoc "oslash" iso8879-character-alist)))
-   (cons "o~"  (cdr (assoc "otilde" iso8879-character-alist)))
-   (cons "o\"" (cdr (assoc "ouml"   iso8879-character-alist)))
-   (cons "sz"  (cdr (assoc "szlig"  iso8879-character-alist)))
-   (cons "u'"  (cdr (assoc "uacute" iso8879-character-alist)))
-   (cons "u^"  (cdr (assoc "ucirc"  iso8879-character-alist)))
-   (cons "u`"  (cdr (assoc "ugrave" iso8879-character-alist)))
-   (cons "u\"" (cdr (assoc "uuml"   iso8879-character-alist)))
-   (cons "y'"  (cdr (assoc "yacute" iso8879-character-alist)))
-   (cons "y\"" (cdr (assoc "yuml"   iso8879-character-alist)))
-   (cons "12"  (cdr (assoc "frac12" iso8879-character-alist)))
-   (cons "13"  (cdr (assoc "frac13" iso8879-character-alist)))
-   (cons "14"  (cdr (assoc "frac14" iso8879-character-alist)))
-   (cons "15"  (cdr (assoc "frac15" iso8879-character-alist)))
-   (cons "16"  (cdr (assoc "frac16" iso8879-character-alist)))
-   (cons "18"  (cdr (assoc "frac18" iso8879-character-alist)))
-   (cons "23"  (cdr (assoc "frac23" iso8879-character-alist)))
-   (cons "25"  (cdr (assoc "frac25" iso8879-character-alist)))
-   (cons "34"  (cdr (assoc "frac34" iso8879-character-alist)))
-   (cons "35"  (cdr (assoc "frac35" iso8879-character-alist)))
-   (cons "38"  (cdr (assoc "frac38" iso8879-character-alist)))
-   (cons "45"  (cdr (assoc "frac45" iso8879-character-alist)))
-   (cons "56"  (cdr (assoc "frac56" iso8879-character-alist)))
-   (cons "58"  (cdr (assoc "frac58" iso8879-character-alist)))
-   (cons "78"  (cdr (assoc "frac78" iso8879-character-alist)))
-   (cons "<<"  (cdr (assoc "laquo"  iso8879-character-alist)))
-   (cons ".."  (cdr (assoc "hellip" iso8879-character-alist)))
-   (cons "!i"  (cdr (assoc "iexcl"  iso8879-character-alist)))
-   (cons "?i"  (cdr (assoc "iquest" iso8879-character-alist)))
-   (cons "  "  (cdr (assoc "nbsp"   iso8879-character-alist)))
-   (cons "+-"  (cdr (assoc "plusmn" iso8879-character-alist)))
-   (cons "--"  (cdr (assoc "mdash"  iso8879-character-alist)))
-   (cons "$c"  (cdr (assoc "cent"   iso8879-character-alist)))
-   (cons "$e"  (cdr (assoc "euro"   iso8879-character-alist)))
-   (cons "$p"  (cdr (assoc "pound"  iso8879-character-alist)))
-   (cons "$y"  (cdr (assoc "yen"    iso8879-character-alist))))
+   (cons "AE"  (cdr (assoc "AElig"  xmlunicode-iso8879-character-alist)))
+   (cons "A'"  (cdr (assoc "Aacute" xmlunicode-iso8879-character-alist)))
+   (cons "A^"  (cdr (assoc "Acirc"  xmlunicode-iso8879-character-alist)))
+   (cons "A`"  (cdr (assoc "Agrave" xmlunicode-iso8879-character-alist)))
+   (cons "Ao"  (cdr (assoc "Aring"  xmlunicode-iso8879-character-alist)))
+   (cons "A~"  (cdr (assoc "Atilde" xmlunicode-iso8879-character-alist)))
+   (cons "A\"" (cdr (assoc "Auml"   xmlunicode-iso8879-character-alist)))
+   (cons "C,"  (cdr (assoc "Ccedil" xmlunicode-iso8879-character-alist)))
+   (cons "E'"  (cdr (assoc "Eacute" xmlunicode-iso8879-character-alist)))
+   (cons "E^"  (cdr (assoc "Ecirc"  xmlunicode-iso8879-character-alist)))
+   (cons "E`"  (cdr (assoc "Egrave" xmlunicode-iso8879-character-alist)))
+   (cons "E\"" (cdr (assoc "Euml"   xmlunicode-iso8879-character-alist)))
+   (cons "I'"  (cdr (assoc "Iacute" xmlunicode-iso8879-character-alist)))
+   (cons "I^"  (cdr (assoc "Icirc"  xmlunicode-iso8879-character-alist)))
+   (cons "I`"  (cdr (assoc "Igrave" xmlunicode-iso8879-character-alist)))
+   (cons "I\"" (cdr (assoc "Iuml"   xmlunicode-iso8879-character-alist)))
+   (cons "N~"  (cdr (assoc "Ntilde" xmlunicode-iso8879-character-alist)))
+   (cons "O'"  (cdr (assoc "Oacute" xmlunicode-iso8879-character-alist)))
+   (cons "O^"  (cdr (assoc "Ocirc"  xmlunicode-iso8879-character-alist)))
+   (cons "O`"  (cdr (assoc "Ograve" xmlunicode-iso8879-character-alist)))
+   (cons "O/"  (cdr (assoc "Oslash" xmlunicode-iso8879-character-alist)))
+   (cons "O~"  (cdr (assoc "Otilde" xmlunicode-iso8879-character-alist)))
+   (cons "O\"" (cdr (assoc "Ouml"   xmlunicode-iso8879-character-alist)))
+   (cons "U'"  (cdr (assoc "Uacute" xmlunicode-iso8879-character-alist)))
+   (cons "U^"  (cdr (assoc "Ucirc"  xmlunicode-iso8879-character-alist)))
+   (cons "U`"  (cdr (assoc "Ugrave" xmlunicode-iso8879-character-alist)))
+   (cons "U\"" (cdr (assoc "Uuml"   xmlunicode-iso8879-character-alist)))
+   (cons "Y'"  (cdr (assoc "Yacute" xmlunicode-iso8879-character-alist)))
+   (cons "a'"  (cdr (assoc "aacute" xmlunicode-iso8879-character-alist)))
+   (cons "a^"  (cdr (assoc "acirc"  xmlunicode-iso8879-character-alist)))
+   (cons "ae"  (cdr (assoc "aelig"  xmlunicode-iso8879-character-alist)))
+   (cons "a`"  (cdr (assoc  "agrave" xmlunicode-iso8879-character-alist)))
+   (cons "ao"  (cdr (assoc "aring"  xmlunicode-iso8879-character-alist)))
+   (cons "a~"  (cdr (assoc "atilde" xmlunicode-iso8879-character-alist)))
+   (cons "a\"" (cdr (assoc "auml"   xmlunicode-iso8879-character-alist)))
+   (cons "c,"  (cdr (assoc "ccedil" xmlunicode-iso8879-character-alist)))
+   (cons "e'"  (cdr (assoc "eacute" xmlunicode-iso8879-character-alist)))
+   (cons "e^"  (cdr (assoc "ecirc"  xmlunicode-iso8879-character-alist)))
+   (cons "e`"  (cdr (assoc "egrave" xmlunicode-iso8879-character-alist)))
+   (cons "e\"" (cdr (assoc "euml"   xmlunicode-iso8879-character-alist)))
+   (cons "i'"  (cdr (assoc "iacute" xmlunicode-iso8879-character-alist)))
+   (cons "i^"  (cdr (assoc "icirc"  xmlunicode-iso8879-character-alist)))
+   (cons "i`"  (cdr (assoc "igrave" xmlunicode-iso8879-character-alist)))
+   (cons "i\"" (cdr (assoc "iuml"   xmlunicode-iso8879-character-alist)))
+   (cons "n~"  (cdr (assoc "ntilde" xmlunicode-iso8879-character-alist)))
+   (cons "o'"  (cdr (assoc "oacute" xmlunicode-iso8879-character-alist)))
+   (cons "o^"  (cdr (assoc "ocirc"  xmlunicode-iso8879-character-alist)))
+   (cons "o`"  (cdr (assoc "ograve" xmlunicode-iso8879-character-alist)))
+   (cons "o-"  (cdr (assoc "omacr"  xmlunicode-iso8879-character-alist)))
+   (cons "o/"  (cdr (assoc "oslash" xmlunicode-iso8879-character-alist)))
+   (cons "o~"  (cdr (assoc "otilde" xmlunicode-iso8879-character-alist)))
+   (cons "o\"" (cdr (assoc "ouml"   xmlunicode-iso8879-character-alist)))
+   (cons "sz"  (cdr (assoc "szlig"  xmlunicode-iso8879-character-alist)))
+   (cons "u'"  (cdr (assoc "uacute" xmlunicode-iso8879-character-alist)))
+   (cons "u^"  (cdr (assoc "ucirc"  xmlunicode-iso8879-character-alist)))
+   (cons "u`"  (cdr (assoc "ugrave" xmlunicode-iso8879-character-alist)))
+   (cons "u\"" (cdr (assoc "uuml"   xmlunicode-iso8879-character-alist)))
+   (cons "y'"  (cdr (assoc "yacute" xmlunicode-iso8879-character-alist)))
+   (cons "y\"" (cdr (assoc "yuml"   xmlunicode-iso8879-character-alist)))
+   (cons "12"  (cdr (assoc "frac12" xmlunicode-iso8879-character-alist)))
+   (cons "13"  (cdr (assoc "frac13" xmlunicode-iso8879-character-alist)))
+   (cons "14"  (cdr (assoc "frac14" xmlunicode-iso8879-character-alist)))
+   (cons "15"  (cdr (assoc "frac15" xmlunicode-iso8879-character-alist)))
+   (cons "16"  (cdr (assoc "frac16" xmlunicode-iso8879-character-alist)))
+   (cons "18"  (cdr (assoc "frac18" xmlunicode-iso8879-character-alist)))
+   (cons "23"  (cdr (assoc "frac23" xmlunicode-iso8879-character-alist)))
+   (cons "25"  (cdr (assoc "frac25" xmlunicode-iso8879-character-alist)))
+   (cons "34"  (cdr (assoc "frac34" xmlunicode-iso8879-character-alist)))
+   (cons "35"  (cdr (assoc "frac35" xmlunicode-iso8879-character-alist)))
+   (cons "38"  (cdr (assoc "frac38" xmlunicode-iso8879-character-alist)))
+   (cons "45"  (cdr (assoc "frac45" xmlunicode-iso8879-character-alist)))
+   (cons "56"  (cdr (assoc "frac56" xmlunicode-iso8879-character-alist)))
+   (cons "58"  (cdr (assoc "frac58" xmlunicode-iso8879-character-alist)))
+   (cons "78"  (cdr (assoc "frac78" xmlunicode-iso8879-character-alist)))
+   (cons "<<"  (cdr (assoc "laquo"  xmlunicode-iso8879-character-alist)))
+   (cons ".."  (cdr (assoc "hellip" xmlunicode-iso8879-character-alist)))
+   (cons "!i"  (cdr (assoc "iexcl"  xmlunicode-iso8879-character-alist)))
+   (cons "?i"  (cdr (assoc "iquest" xmlunicode-iso8879-character-alist)))
+   (cons "  "  (cdr (assoc "nbsp"   xmlunicode-iso8879-character-alist)))
+   (cons "+-"  (cdr (assoc "plusmn" xmlunicode-iso8879-character-alist)))
+   (cons "--"  (cdr (assoc "mdash"  xmlunicode-iso8879-character-alist)))
+   (cons "$c"  (cdr (assoc "cent"   xmlunicode-iso8879-character-alist)))
+   (cons "$e"  (cdr (assoc "euro"   xmlunicode-iso8879-character-alist)))
+   (cons "$p"  (cdr (assoc "pound"  xmlunicode-iso8879-character-alist)))
+   (cons "$y"  (cdr (assoc "yen"    xmlunicode-iso8879-character-alist))))
   "Defines a list of two-character shortcuts for keyboard entry of Unicode characters.")
 
-(defun unicode-character-shortcut-insert ()
+(defun xmlunicode-character-shortcut-insert ()
   "Read a (two-character) keyboard shortcut and insert the corresponding character."
   (interactive)
   (let* ((c1 (read-char))
 	 (c2 (read-char))
 	 (str (concat (char-to-string c1) (char-to-string c2))))
     (cond
-     ((assoc str unicode-character-shortcut-alist)
-      (xml-unicode-insert nil
-			  (cdr (assoc str unicode-character-shortcut-alist))))
+     ((assoc str xmlunicode-character-shortcut-alist)
+      (xmlunicode-insert nil
+			  (cdr (assoc str xmlunicode-character-shortcut-alist))))
      (t (beep)))))
 
-(defun show-unicode-character-list ()
+(defun xmlunicode-show-character-list ()
   "Insert each Unicode character into a buffer. Let's you see which characters are available for literal display in your emacs font."
-  (let ((chars unicode-character-list)
+  (let ((chars xmlunicode-character-list)
 	char codept name)
     (while chars
       (setq char (car chars))
@@ -716,6 +723,31 @@ data if you want to preserve them."
 	    (insert (format "#x%06x " codept))
 	    (insert-char codept)
 	    (insert (format " %s\n" name)))))))
+
+
+(defun xmlunicode-make-helm-listitem (charlist)
+  (let* ((char    (car charlist))
+         (uniname (cadr charlist))
+         (isoname (caddr charlist))
+         (charstr (if (and (> char 31) (characterp char))
+                      (string char)
+                    " "))
+         (isostr  (if isoname
+                      (concat " (" isoname ")")
+                    "")))
+    (cons (concat (concat charstr " ") uniname isostr) char)))
+
+
+(defun xmlunicode-character-insert-helm (arg)
+  "Insert unicode character with helm completion"
+  (interactive "P")
+  (let ((item (helm :sources (helm-build-sync-source "Unicode Characters"
+                               :candidates (mapcar 'xmlunicode-make-helm-listitem
+                                                   xmlunicode-character-list))
+                    :prompt "Character name: "
+                    :buffer "*helm unicode characters*")))
+    (if item
+        (xmlunicode-insert arg item))))
 
 (provide 'xmlunicode)
 ;;; xmlunicode.el ends here
