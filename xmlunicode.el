@@ -9,7 +9,7 @@
 ;; Contributor: Mark A. Hershberger <mah@everybody.org>
 ;; Created: 2004-07-21
 ;; Updated: 2016-01-08
-;; Version: 1.14
+;; Version: 1.15
 ;; Keywords: utf-8 unicode xml characters
 
 ;; This file is NOT part of GNU emacs.
@@ -94,6 +94,12 @@
 
 ;;; Changes
 
+;; v1.15
+;;   Made the "smart" insert functions a little smarter; they only run
+;;   the XML tests in an XML mode. Makes them easier and safer to use
+;;   more globally.
+;;   Added xmlunicode-default-single-quote so that you can change the
+;;   default apostrophe (in places like contractions) to the rsquo.
 ;; v1.14
 ;;   Added codepoint to the helm character list
 ;;   Improved the xmlunicode-smart-hyphen function; just insert "-" if
@@ -149,6 +155,9 @@
 (defvar xmlunicode-ndash  (decode-char 'ucs #x002013))
 (defvar xmlunicode-mdash  (decode-char 'ucs #x002014))
 (defvar xmlunicode-hellip (decode-char 'ucs #x002026))
+
+(defvar xmlunicode-default-single-quote xmlunicode-apos
+  "The default single quote character.")
 
 (defvar xmlunicode-charref-format "&#x%x;"
   "The format for numeric character references")
@@ -399,84 +408,74 @@ data if you want to preserve them."
 (defun xmlunicode-smart-double-quote ()
   "Insert a left or right double quote as appropriate. Left quotes are inserted after a space, newline, or start tag. Right quotes are inserted after any other character, except if the preceding character is a quote, in which case we cycle through the three quote styles."
   (interactive)
-  (if (char-before)
-      (let ((ch (char-before)))
-	(cond
-	 ((xmlunicode-in-start-tag)
-	  (insert "\""))
-	 ((or
-	   (xmlunicode-after-start-tag)
-	   (char-equal ch 40)  ; (
-	   (char-equal ch 91)  ; [
-	   (char-equal ch ?{)) ; {
-	  (insert xmlunicode-ldquo))
-	 ((or
-	   (char-equal ch ?>)  ; >
-	   (char-equal ch 41)  ; )
-	   (char-equal ch 93)  ; ]
-	   (char-equal ch ?})) ; }
-	  (insert xmlunicode-rdquo))
-	 ((or (char-equal ch 32)
-	      (char-equal ch 10))
-	  (insert xmlunicode-ldquo))
-	 ((char-equal ch xmlunicode-ldquo)
-	  (progn
-	    (delete-char -1)
-	    (insert "\"")))
-	 ((char-equal ch xmlunicode-quot)
-	  (progn
-	    (delete-char -1)
-	    (insert xmlunicode-rdquo)))
-	 ((char-equal ch xmlunicode-rdquo)
-	  (progn
-	    (delete-char -1)
-	    (insert xmlunicode-ldquo)))
-	 ((char-equal ch xmlunicode-ldquo)
-	  (progn
-	    (delete-char -1)
-	    (insert xmlunicode-rdquo)))
-	 ((char-equal ch xmlunicode-lsquo)
-	  (insert xmlunicode-ldquo))
-	 (t (insert xmlunicode-rdquo))))
-    (insert xmlunicode-ldquo)))
+  (let ((ch (char-before))
+        (xml (derived-mode-p 'nxml-mode))) ; only do XML tests in XML modes
+    (cond
+     ((and xml (xmlunicode-in-start-tag))
+      (insert "\""))
+     ((or
+       (and xml (xmlunicode-after-start-tag))
+       (and (not xml) (char-equal ch ?\<))
+       (char-equal ch ?\()
+       (char-equal ch ?\[)
+       (char-equal ch ?{))
+      (insert xmlunicode-ldquo))
+     ((or
+       (char-equal ch ?\>)
+       (char-equal ch ?\))
+       (char-equal ch ?\])
+       (char-equal ch ?}))
+      (insert xmlunicode-rdquo))
+     ((or (char-equal ch ?\s)
+          (char-equal ch ?\n))
+      (insert xmlunicode-ldquo))
+     ((char-equal ch xmlunicode-ldquo) ; ldquo -> "
+      (progn
+        (delete-char -1)
+        (insert "\"")))
+     ((char-equal ch xmlunicode-quot)  ; " -> rdquo
+      (progn
+        (delete-char -1)
+        (insert xmlunicode-rdquo)))
+     ((char-equal ch xmlunicode-rdquo) ; rdquo -> ldquo
+      (progn
+        (delete-char -1)
+        (insert xmlunicode-ldquo)))
+     ((char-equal ch xmlunicode-lsquo)
+      (insert xmlunicode-ldquo))
+     (t (insert xmlunicode-rdquo)))))
 
 (defun xmlunicode-smart-single-quote ()
   "Insert a left or right single quote, or an apostrophe, as appropriate. Left quotes are inserted after a space, newline, or start tag. An apostrophe is inserted after any other character, except if the preceding character is a quote or apostrophe, in which case we cycle through the styles."
   (interactive)
-  (if (char-before)
-      (let ((ch (char-before)))
-	(cond
-	 ((xmlunicode-in-start-tag)
-	  (insert "'"))
-	 ((or
-	   (xmlunicode-after-start-tag)
-	   (char-equal ch 40)  ; (
-	   (char-equal ch 91)  ; [
-	   (char-equal ch ?{)) ; {
-	  (insert xmlunicode-lsquo))
-	 ((or
-	   (char-equal ch ?>)  ; >
-	   (char-equal ch 41)  ; )
-	   (char-equal ch 93)  ; ]
-	   (char-equal ch ?})) ; }
-	  (insert xmlunicode-rsquo))
-	 ((or (char-equal ch 32)
-	      (char-equal ch 10))
-	  (insert xmlunicode-lsquo))
-	 ((char-equal ch xmlunicode-apos)  ; ' -> rsquo
-	  (progn
-	    (delete-char -1)
-	    (insert xmlunicode-rsquo)))
-	 ((char-equal ch xmlunicode-rsquo) ; rsquo -> lsquo
-	  (progn
-	    (delete-char -1)
-	    (insert xmlunicode-lsquo)))
-	 ((char-equal ch xmlunicode-lsquo) ; lsquo -> '
-	  (progn
-	    (delete-char -1)
-	    (insert xmlunicode-apos)))
-	 (t (insert xmlunicode-apos))))
-    (insert xmlunicode-lsquo)))
+  (let ((ch (char-before))
+        (xml (derived-mode-p 'nxml-mode))) ; only do XML tests in XML modes
+    (cond
+     ((and xml (xmlunicode-in-start-tag))
+      (insert "'"))
+     ((or
+       (and xml (xmlunicode-after-start-tag))
+       (and (not xml) (char-equal ch ?\<))
+       (char-equal ch ?\()
+       (char-equal ch ?\[)
+       (char-equal ch ?\{))
+      (insert xmlunicode-lsquo))
+     ((or (char-equal ch ?\s)
+          (char-equal ch ?\n))
+      (insert xmlunicode-lsquo))
+     ((char-equal ch xmlunicode-apos)  ; ' -> rsquo
+      (progn
+        (delete-char -1)
+        (insert xmlunicode-rsquo)))
+     ((char-equal ch xmlunicode-rsquo) ; rsquo -> lsquo
+      (progn
+        (delete-char -1)
+        (insert xmlunicode-lsquo)))
+     ((char-equal ch xmlunicode-lsquo) ; lsquo -> '
+      (progn
+        (delete-char -1)
+        (insert xmlunicode-apos)))
+     (t (insert xmlunicode-default-single-quote)))))
 
 (defun xmlunicode-smart-hyphen ()
   "Insert a hyphen, mdash, or ndash as appropriate. A hyphen, an mdash, and then an ndash is inserted."
@@ -505,65 +504,66 @@ data if you want to preserve them."
 (defun xmlunicode-smart-period ()
   "Insert an hellipsis for three dots."
   (interactive)
-  (if (> (point) 2)
-      (let ((ch1 (char-before))
-	    (ch2 (char-before (- (point) 1)))
-	    (ch3 (char-before (- (point) 2))))
-	(cond
-	 ((xmlunicode-in-comment)
-	  (insert "."))
-	 ((char-equal ch1 xmlunicode-hellip)
-	  (progn
-	    (delete-char -1)
-	    (insert "....")))
-	 ((and ch3 (char-equal ch1 ?.) (char-equal ch2 ?.) (char-equal ch3 ?.))
-	  (insert "."))
-	 ((and (char-equal ch1 ?.) (char-equal ch2 ?.))
-	  (progn
-	    (delete-char -2)
-	    (insert xmlunicode-hellip)))
-	 (t (insert "."))))
-    (insert ".")))
+  (let ((ch1 (char-before))
+        (ch2 (char-before (- (point) 1)))
+        (ch3 (char-before (- (point) 2)))
+        (xml (derived-mode-p 'nxml-mode))) ; only do XML tests in XML modes
+    (cond
+     ((and xml (xmlunicode-in-comment))
+      (insert "."))
+     ((char-equal ch1 xmlunicode-hellip)
+      (progn
+        (delete-char -1)
+        (insert "....")))
+     ((and ch3 (char-equal ch1 ?.) (char-equal ch2 ?.) (char-equal ch3 ?.))
+      (insert "."))
+     ((and (char-equal ch1 ?.) (char-equal ch2 ?.))
+      (progn
+        (delete-char -2)
+        (insert xmlunicode-hellip)))
+     (t (insert ".")))))
 
 (defun xmlunicode-smart-semicolon ()
   "Detect numeric character references and replace them with the appropriate char."
   (interactive)
-  (let ((pos (point))
-	amppos codept)
-    (search-backward "&" nil t nil)
-    (setq amppos (point))
-    (goto-char pos)
-    (cond
-     ((xmlunicode-looking-backward-at "&#[xX][0-9a-fA-F]+")
-      (progn
-	(re-search-backward "&#[xX]\\([0-9a-fA-F]+\\)" nil t nil)
-	(if (= amppos (point))
-	    (progn
-	      (setq codept (string-to-number (match-string 1) 16))
-	      (if (not (memq codept xmlunicode-missing-list))
-		  (replace-match (format "%c" (decode-char 'ucs codept)))
-		(progn
-		  (goto-char pos)
-		  (insert ";"))))
-	  (progn
-	    (goto-char pos)
-	    (insert ";")))))
-     ((xmlunicode-looking-backward-at "&#[0-9]+")
-      (progn
-	(re-search-backward "&#\\([0-9]+\\)" nil t nil)
-	(if (= amppos (point))
-	    (progn
-	      (setq codept (string-to-number (match-string 1) 10))
-	      (if (not (memq codept xmlunicode-missing-list))
-		  (replace-match (format "%c" (decode-char 'ucs codept)))
-		(progn
-		  (goto-char pos)
-		  (insert ";"))))
-	  (progn
-	    (goto-char pos)
-	    (insert ";")))))
-     (t
-      (insert ";")))))
+  (if (derived-mode-p 'nxml-mode) ; only do this in XML modes
+      (let ((pos (point))
+            amppos codept)
+        (search-backward "&" nil t nil)
+        (setq amppos (point))
+        (goto-char pos)
+        (cond
+         ((xmlunicode-looking-backward-at "&#[xX][0-9a-fA-F]+")
+          (progn
+            (re-search-backward "&#[xX]\\([0-9a-fA-F]+\\)" nil t nil)
+            (if (= amppos (point))
+                (progn
+                  (setq codept (string-to-number (match-string 1) 16))
+                  (if (not (memq codept xmlunicode-missing-list))
+                      (replace-match (format "%c" (decode-char 'ucs codept)))
+                    (progn
+                      (goto-char pos)
+                      (insert ";"))))
+              (progn
+                (goto-char pos)
+                (insert ";")))))
+         ((xmlunicode-looking-backward-at "&#[0-9]+")
+          (progn
+            (re-search-backward "&#\\([0-9]+\\)" nil t nil)
+            (if (= amppos (point))
+                (progn
+                  (setq codept (string-to-number (match-string 1) 10))
+                  (if (not (memq codept xmlunicode-missing-list))
+                      (replace-match (format "%c" (decode-char 'ucs codept)))
+                    (progn
+                      (goto-char pos)
+                      (insert ";"))))
+              (progn
+                (goto-char pos)
+                (insert ";")))))
+         (t
+          (insert ";"))))
+    (insert ";")))
 
 ;; Setup quail for XML mode
 
@@ -571,7 +571,7 @@ data if you want to preserve them."
 
 (quail-define-package
  "xml" "UTF-8" "&" t
- "Unicode characters input method using ISO 8879 entitie names from the xmlunicode-character-list"
+ "Unicode characters input method using ISO 8879 entity names from the xmlunicode-character-list"
  nil t nil nil nil nil nil nil nil nil t)
 
 (defvar xml-quail-define-rules '()
