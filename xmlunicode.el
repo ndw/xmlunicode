@@ -411,6 +411,8 @@ data if you want to preserve them."
   (let ((ch (char-before))
         (xml (derived-mode-p 'nxml-mode))) ; only do XML tests in XML modes
     (cond
+     ((eq nil ch)
+      (insert xmlunicode-ldquo))
      ((and xml (xmlunicode-in-start-tag))
       (insert "\""))
      ((or
@@ -451,6 +453,8 @@ data if you want to preserve them."
   (let ((ch (char-before))
         (xml (derived-mode-p 'nxml-mode))) ; only do XML tests in XML modes
     (cond
+     ((eq nil ch)
+      (insert xmlunicode-lsquo))
      ((and xml (xmlunicode-in-start-tag))
       (insert "'"))
      ((or
@@ -483,20 +487,25 @@ data if you want to preserve them."
   (let ((pchar (char-before))
         (ppchar (char-before (- (point) 1))))
     (cond
-     ((and (char-equal pchar ?-) (char-equal ppchar ?-))
+     ((eq nil pchar)
+      (insert "-"))
+     ((and (char-equal pchar ?-) (or (eq nil ppchar) (char-equal ppchar ?-)))
       (insert "-"))
      ((xmlunicode-in-comment)
       (insert "-"))
      ((char-equal pchar xmlunicode-mdash)
       (progn
         (delete-char -1)
+        (message "en dash")
         (insert xmlunicode-ndash)))
      ((char-equal pchar xmlunicode-ndash)
       (progn
         (delete-char -1)
+        (message "hyphen")
         (insert "-")))
      ((char-equal pchar ?-)
       (progn (delete-char -1)
+             (message "em dash")
              (insert xmlunicode-mdash)))
      (t
       (insert "-")))))
@@ -509,12 +518,16 @@ data if you want to preserve them."
         (ch3 (char-before (- (point) 2)))
         (xml (derived-mode-p 'nxml-mode))) ; only do XML tests in XML modes
     (cond
+     ((eq nil ch1)
+      (insert "."))
      ((and xml (xmlunicode-in-comment))
       (insert "."))
      ((char-equal ch1 xmlunicode-hellip)
       (progn
         (delete-char -1)
         (insert "....")))
+     ((eq nil ch2)
+      (insert "."))
      ((and ch3 (char-equal ch1 ?.) (char-equal ch2 ?.) (char-equal ch3 ?.))
       (insert "."))
      ((and (char-equal ch1 ?.) (char-equal ch2 ?.))
