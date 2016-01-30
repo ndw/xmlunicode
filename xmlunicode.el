@@ -37,8 +37,11 @@
 
 ;;; Usage
 
-;; 1. Before loading this file, make sure that the variable xmlunicode-character-list is
-;;    defined. The xmlunicode-character-list is a list of triples of the form:
+;; 1. By default, the entire Unicode character list (as defined in
+;;    xmlunicode-character-list.el) will be loaded. You can tailor
+;;    the selection of characters presented in the list by defining
+;;    xmlunicode-character-list before loading xmlunicode. The
+;;    xmlunicode-character-list is a list of triples of the form:
 ;;
 ;;    (codepoint "unicode name" "iso name") ; iso name can be nil
 ;;
@@ -53,9 +56,6 @@
 ;;               (#x0000a2 "CENT SIGN"                              "cent"  )
 ;;               ...))
 ;;
-;;
-;;    The easiest way to define this list is to load "unichars.el"
-;;    which should be available where you got this file.
 ;;
 ;; 2. Bind the functions defined in this file to keys you find convenient.
 ;;
