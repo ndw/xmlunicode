@@ -1,6 +1,6 @@
 ;;; xmlunicode.el --- Unicode support for XML -*- coding: utf-8 -*-
 
-;; Copyright (C) 2003, 2015 Norman Walsh
+;; Copyright (C) 2003, 2015, 2016 Norman Walsh
 ;; Inspired in part by sgml-input, Copyright (C) 2001 Dave Love
 ;; Inspired in part by http://www.tbray.org/ongoing/When/200x/2003/09/27/UniEmacs
 
@@ -8,8 +8,8 @@
 ;; Maintainer: Norman Walsh <ndw@nwalsh.com>
 ;; Contributor: Mark A. Hershberger <mah@everybody.org>
 ;; Created: 2004-07-21
-;; Updated: 2016-01-08
-;; Version: 1.15
+;; Updated: 2016-03-19
+;; Version: 1.16
 ;; Keywords: utf-8 unicode xml characters
 
 ;; This file is NOT part of GNU emacs.
@@ -94,6 +94,9 @@
 
 ;;; Changes
 
+;; v1.16
+;;   Fixed the XML character input method so that it will leave
+;;   &gt;, &lt; &amp; &quot; and &apos; alone.
 ;; v1.15
 ;;   Made the "smart" insert functions a little smarter; they only run
 ;;   the XML tests in an XML mode. Makes them easier and safer to use
@@ -598,9 +601,6 @@ data if you want to preserve them."
     (setq missing-glyph (memq codepoint xmlunicode-missing-list))
     (setq entname (concat "&" (car (car ulist)) ";"))
     (cond
-     ((and (not missing-glyph) (decode-char 'ucs codepoint))
-      (nconc xml-quail-define-rules
-	     (list (list entname (decode-char 'ucs codepoint)))))
      ((= codepoint 34)
       (nconc xml-quail-define-rules
 	     (list (list entname (vector "&quot;")))))
@@ -616,6 +616,9 @@ data if you want to preserve them."
      ((= codepoint 62)
       (nconc xml-quail-define-rules
 	     (list (list entname (vector "&gt;")))))
+     ((and (not missing-glyph) (decode-char 'ucs codepoint))
+      (nconc xml-quail-define-rules
+	     (list (list entname (decode-char 'ucs codepoint)))))
      (t
       (nconc xml-quail-define-rules
 	     (list (list entname (vector (format xmlunicode-charref-format codepoint)))))))
