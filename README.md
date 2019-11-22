@@ -18,7 +18,8 @@ xmlunicode-character-insert
 Insert a Unicode character by character name. If a prefix is given,
 the character will be inserted regardless of whether or not it has a
 displayable glyph; otherwise, a numeric character reference is
-inserted if the codepoint is in the `xmlunicode-missing-list`.
+inserted if the codepoint is not displayable according to
+`xmlunicode-character-displayable`.
 
 This function is somewhat obsoleted by new methods in Emacs 24 and
 beyond for inserting Unicode. But the numeric character reference
@@ -39,7 +40,8 @@ xmlunicode-iso8879-character-insert
 Insert a Unicode character by ISO 8879 entity name. If a prefix is
 given, the character will be inserted regardless of whether or not it
 has a displayable glyph; otherwise, a numeric character reference is
-inserted if the codepoint is in the `xmlunicode-missing-list`.
+inserted if the codepoint is not displayable according to
+`xmlunicode-character-displayable`.
 
 I bind this to “C-t i”
 
@@ -115,3 +117,9 @@ You can't bind this one to a key, just run it in your `*scratch*`
 buffer. It inserts all the Unicode characters. This allows you to see
 which ones will actually display correctly.
 
+Building your own character list
+------------------------------
+
+The `unicode-to-el.py` script can be used to combine your own versions
+of `[UnicodeData.txt](https://www.unicode.org/Public/12.1.0/ucd/UnicodeData.txt)`
+and `ISONameList.txt` into `xmlunicode-character-list.el`.
