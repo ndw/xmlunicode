@@ -11,7 +11,7 @@
 ;; Contributor: Mark A. Hershberger <mah@everybody.org>
 ;; Created: 2004-07-21
 ;; Updated: 2019-11-22
-;; Version: 1.17
+;; Version: 1.18
 ;; Keywords: utf-8 unicode xml characters
 
 ;; This file is NOT part of GNU Emacs.
@@ -96,6 +96,9 @@
 
 ;;; Changes
 
+;; v1.18
+;;   Fixed bug where I failed to include the provide statement for the
+;;   character list. *blush*
 ;; v1.17
 ;;   Updated the xmlunicode-character-list.el to Unicode 12.1.0 (from 3.1)
 ;;   Added helper scripts so that you can rebuild the list if you wish
