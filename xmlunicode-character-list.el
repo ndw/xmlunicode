@@ -32809,4 +32809,5 @@
     (#x0e01ee "VARIATION SELECTOR-255"                 nil     )
     (#x0e01ef "VARIATION SELECTOR-256"                 nil     )
 ))
+(provide 'xmlunicode-character-list)
 ;;; xmlunicode-character-list.el ends here

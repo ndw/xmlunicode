@@ -51,4 +51,5 @@ with open("UnicodeData.txt") as unicode:
                 isoname = "\"%s\"" % isoname
                 print("    (#x%06x %-40s %-8s)" % (codept, name, isoname))
 print("))")
+print("(provide 'xmlunicode-character-list)")
 print(";;; xmlunicode-character-list.el ends here")
