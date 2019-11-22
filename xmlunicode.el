@@ -163,10 +163,10 @@
   "The default single quote character.")
 
 (defvar xmlunicode-charref-format "&#x%x;"
-  "The format for numeric character references")
+  "The format for numeric character references.")
 
 (defvar xml-tag-search-limit 4096
-  "Maximum distance to search from point for tag start characters")
+  "Maximum distance to search from point for tag start characters.")
 
 (unless (boundp 'xmlunicode-character-list)
   (require 'xmlunicode-character-list))
@@ -202,7 +202,8 @@
     (setq ulist (cdr ulist))))
 
 (defun xmlunicode-iso8879-to-codepoints (&optional isolist)
-  "Converts a list of ISO 8879 entity names to a list of codepoints. This is a convenience function for defining the glyph list."
+  "Convert ISO 8879 entity names in ISOLIST to a list of codepoints.
+This is a convenience function for defining the glyph list."
   (let (codepoint-list)
     (setq codepoint-list (list 0))
     (while isolist
@@ -212,7 +213,8 @@
     (cdr codepoint-list)))
 
 (defun xmlunicode-to-codepoints (&optional unilist)
-  "Converts a list of Unicode character names to a list of codepoints. This is a convenience function for defining the glyph list."
+  "Convert Unicode character names in UNILIST to a list of codepoints.
+This is a convenience function for defining the glyph list."
   (let (codepoint-list)
     (setq codepoint-list (list 0))
     (while unilist
@@ -224,7 +226,13 @@
 ;; Insert characters by Unicode name (with completion)
 
 (defun xmlunicode-character-insert (arg &optional argname)
-  "Insert a Unicode character by character name. If a prefix is given, the character will be inserted regardless of whether or not it has a displayable glyph; otherwise, a numeric character reference is inserted if the codepoint is in the xmlunicode-missing-list. If argname is given, it is used for the prompt. If argname uniquely identifies a character, that character is inserted without the prompt."
+  "Insert Unicode character ARG by character name.
+If a prefix is given, the character will be inserted regardless
+of whether or not it has a displayable glyph; otherwise, a
+numeric character reference is inserted if the codepoint is in
+the xmlunicode-missing-list. If ARGNAME is given, it is used for
+the prompt. If ARGNAME uniquely identifies a character, that
+character is inserted without the prompt."
   (interactive "P")
   (let* ((completion-ignore-case t)
 	 (uniname (if (stringp argname) argname ""))
@@ -242,7 +250,13 @@
 ;; Insert characters by iso8879 name
 
 (defun xmlunicode-xmlunicode-iso8879-character-insert (arg &optional argname)
-  "Insert a Unicode character by ISO 8879 entity name. If a prefix is given, the character will be inserted regardless of whether or not it has a displayable glyph; otherwise, a numeric character reference is inserted if the codepoint is in the xmlunicode-missing-list. If argname is given, it is used for the prompt. If argname uniquely identifies a character, that character is inserted without the prompt."
+  "Insert Unicode character ARG ISO 8879 entity name.
+If a prefix is given, the character will be inserted regardless
+of whether or not it has a displayable glyph; otherwise, a
+numeric character reference is inserted if the codepoint is in
+the xmlunicode-missing-list. If ARGNAME is given, it is used for
+the prompt. If ARGNAME uniquely identifies a character, that
+character is inserted without the prompt."
   (interactive "P")
   (let* ((isoname (if (stringp argname) argname ""))
 	 (charname
@@ -257,7 +271,9 @@
     (xmlunicode-insert arg codepoint)))
 
 (defun xmlunicode-insert (arg codepoint)
-  "Insert the Unicode character identified by codepoint taking into account available glyphs and XML predefined entities."
+  "Insert the Unicode character ARG identified by CODEPOINT.
+This function takes into account available glyphs and XML
+predefined entities."
   (interactive "P")
   (let ((missing-glyph (memq codepoint xmlunicode-missing-list)))
     (cond
@@ -361,7 +377,7 @@
       plt)))
 
 (defun xmlunicode-after-start-tag ()
-  "Crude test to see if point is just after a start tag"
+  "Crude test to see if point is just after a start tag."
   (interactive)
   (if (and (char-before) (char-equal (char-before) ?>))
       (let (slim here plt psl)
@@ -730,7 +746,9 @@ data if you want to preserve them."
      (t (beep)))))
 
 (defun xmlunicode-show-character-list ()
-  "Insert each Unicode character into a buffer. Let's you see which characters are available for literal display in your emacs font."
+  "Insert each Unicode character into a buffer.
+Let's you see which characters are available for literal display
+in your Emacs font."
   (let ((chars xmlunicode-character-list)
 	char codept name)
     (while chars
@@ -747,6 +765,7 @@ data if you want to preserve them."
 
 
 (defun xmlunicode-make-helm-listitem (charlist)
+  "Construct a helm list item for CHARLIST."
   (let* ((char    (car charlist))
          (uniname (cadr charlist))
          (isoname (caddr charlist))
@@ -766,7 +785,7 @@ data if you want to preserve them."
     (cons (concat (concat charstr " ") uniname isostr padstr cpstr) char)))
 
 (defun xmlunicode-character-insert-helm (arg)
-  "Insert unicode character with helm completion"
+  "Insert unicode character ARG with helm completion."
   (interactive "P")
   (let ((item (helm :sources (helm-build-sync-source "Unicode Characters"
                                :candidates (mapcar 'xmlunicode-make-helm-listitem
