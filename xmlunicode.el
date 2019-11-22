@@ -11,7 +11,7 @@
 ;; Contributor: Mark A. Hershberger <mah@everybody.org>
 ;; Created: 2004-07-21
 ;; Updated: 2019-11-22
-;; Version: 1.18
+;; Version: 1.19
 ;; Keywords: utf-8 unicode xml characters
 
 ;; This file is NOT part of GNU Emacs.
@@ -96,6 +96,8 @@
 
 ;;; Changes
 
+;; v1.19
+;;   Moved defun before defvar (WTF?). *blush*
 ;; v1.18
 ;;   Fixed bug where I failed to include the provide statement for the
 ;;   character list. *blush*
@@ -604,6 +606,13 @@ data if you want to preserve them."
           (insert ";"))))
     (insert ";")))
 
+(defun xmlunicode-displayable-character (codept)
+  "Test if the codepoint CODEPT is displayable.
+This test was arrived at by experimentation; it could be innacurate
+for some configurations."
+  (or (eq t (char-displayable-p codept))
+      (fontp (char-displayable-p codept))))
+
 ;; Setup quail for XML mode
 
 (require 'quail)
@@ -750,13 +759,6 @@ data if you want to preserve them."
       (xmlunicode-insert nil
 			  (cdr (assoc str xmlunicode-character-shortcut-alist))))
      (t (beep)))))
-
-(defun xmlunicode-displayable-character (codept)
-  "Test if the codepoint CODEPT is displayable.
-This test was arrived at by experimentation; it could be innacurate
-for some configurations."
-  (or (eq t (char-displayable-p codept))
-      (fontp (char-displayable-p codept))))
 
 (defun xmlunicode-show-character-list ()
   "Insert each Unicode character into a buffer.
