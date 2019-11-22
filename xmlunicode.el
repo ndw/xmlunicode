@@ -1,6 +1,8 @@
 ;;; xmlunicode.el --- Unicode support for XML -*- coding: utf-8 -*-
 
-;; Copyright (C) 2003, 2015, 2016 Norman Walsh
+;;; Commentary:
+
+;; Copyright (C) 2003, 2015, 2016, 2019 Norman Walsh
 ;; Inspired in part by sgml-input, Copyright (C) 2001 Dave Love
 ;; Inspired in part by http://www.tbray.org/ongoing/When/200x/2003/09/27/UniEmacs
 
@@ -8,11 +10,11 @@
 ;; Maintainer: Norman Walsh <ndw@nwalsh.com>
 ;; Contributor: Mark A. Hershberger <mah@everybody.org>
 ;; Created: 2004-07-21
-;; Updated: 2016-03-19
-;; Version: 1.16
+;; Updated: 2019-11-22
+;; Version: 1.17
 ;; Keywords: utf-8 unicode xml characters
 
-;; This file is NOT part of GNU emacs.
+;; This file is NOT part of GNU Emacs.
 
 ;; This is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -79,7 +81,7 @@
 ;;    (define-key APPROPRIATE-MAP [menu-bar unichar]
 ;;      (cons "UniChar" xmlunicode-character-menu-map))
 ;;
-;;    Where APPROPRIATE-MAP is the name of the emacs keymap to bind into
+;;    Where APPROPRIATE-MAP is the name of the Emacs keymap to bind into
 ;;
 ;; 3. If you want to use the xml input-mode, which provides automatic replacement for the
 ;;    ISO entity names:
@@ -94,6 +96,12 @@
 
 ;;; Changes
 
+;; v1.17
+;;   Updated the xmlunicode-character-list.el to Unicode 12.1.0 (from 3.1)
+;;   Added helper scripts so that you can rebuild the list if you wish
+;;   Removed xmlunicode-missing-list.el; whether or not characters are
+;;   displayable is now computed dynamically
+;;   (see xmlunicode-displayable-character).
 ;; v1.16
 ;;   Fixed the XML character input method so that it will leave
 ;;   &gt;, &lt; &amp; &quot; and &apos; alone.
@@ -113,7 +121,7 @@
 ;; v1.12
 ;;   ???
 ;; v1.11
-;;   Fix up some compile warnings and deprecations that modern emacs
+;;   Fix up some compile warnings and deprecations that modern Emacs
 ;;   reveals.  Also found a cut-n-paste bug in the ununsed
 ;;   unicode-to-codepoints.
 ;; v1.7
