@@ -171,9 +171,6 @@
 (unless (boundp 'xmlunicode-character-list)
   (require 'xmlunicode-character-list))
 
-(unless (boundp 'xmlunicode-missing-list)
-  (require 'xmlunicode-missing-list))
-
 (defvar xmlunicode-character-alist '()
   "Mapping of Unicode character names to codepoints.")
 
@@ -229,8 +226,8 @@ This is a convenience function for defining the glyph list."
   "Insert Unicode character ARG by character name.
 If a prefix is given, the character will be inserted regardless
 of whether or not it has a displayable glyph; otherwise, a
-numeric character reference is inserted if the codepoint is in
-the xmlunicode-missing-list. If ARGNAME is given, it is used for
+numeric character reference is inserted if the codepoint is not
+believed to be displayable. If ARGNAME is given, it is used for
 the prompt. If ARGNAME uniquely identifies a character, that
 character is inserted without the prompt."
   (interactive "P")
@@ -253,8 +250,8 @@ character is inserted without the prompt."
   "Insert Unicode character ARG ISO 8879 entity name.
 If a prefix is given, the character will be inserted regardless
 of whether or not it has a displayable glyph; otherwise, a
-numeric character reference is inserted if the codepoint is in
-the xmlunicode-missing-list. If ARGNAME is given, it is used for
+numeric character reference is inserted if the codepoint is not
+believed to be displayable. If ARGNAME is given, it is used for
 the prompt. If ARGNAME uniquely identifies a character, that
 character is inserted without the prompt."
   (interactive "P")
@@ -275,22 +272,21 @@ character is inserted without the prompt."
 This function takes into account available glyphs and XML
 predefined entities."
   (interactive "P")
-  (let ((missing-glyph (memq codepoint xmlunicode-missing-list)))
-    (cond
-     ((and (decode-char 'ucs codepoint) (or arg (not missing-glyph)))
-      (insert-char codepoint))
-     ((= codepoint 34)
-      (insert "&quot;"))
-     ((= codepoint 38)
-      (insert "&amp;"))
-     ((= codepoint 39)
-      (insert "&apos;"))
-     ((= codepoint 60)
-      (insert "&lt;"))
-     ((= codepoint 62)
-      (insert "&gt;"))
-     (t
-      (insert (format xmlunicode-charref-format codepoint))))))
+  (cond
+   ((and (decode-char 'ucs codepoint) (or arg (xmlunicode-displayable-character codepoint)))
+    (insert-char codepoint))
+   ((= codepoint 34)
+    (insert "&quot;"))
+   ((= codepoint 38)
+    (insert "&amp;"))
+   ((= codepoint 39)
+    (insert "&apos;"))
+   ((= codepoint 60)
+    (insert "&lt;"))
+   ((= codepoint 62)
+    (insert "&gt;"))
+   (t
+    (insert (format xmlunicode-charref-format codepoint)))))
 
 ;; Menus
 
@@ -571,7 +567,7 @@ data if you want to preserve them."
             (if (= amppos (point))
                 (progn
                   (setq codept (string-to-number (match-string 1) 16))
-                  (if (not (memq codept xmlunicode-missing-list))
+                  (if (xmlunicode-displayable-character codept)
                       (replace-match (format "%c" (decode-char 'ucs codept)))
                     (progn
                       (goto-char pos)
@@ -585,7 +581,7 @@ data if you want to preserve them."
             (if (= amppos (point))
                 (progn
                   (setq codept (string-to-number (match-string 1) 10))
-                  (if (not (memq codept xmlunicode-missing-list))
+                  (if (xmlunicode-displayable-character codept)
                       (replace-match (format "%c" (decode-char 'ucs codept)))
                     (progn
                       (goto-char pos)
@@ -607,14 +603,13 @@ data if you want to preserve them."
  nil t nil nil nil nil nil nil nil nil t)
 
 (defvar xml-quail-define-rules '()
-  "The default xml-input rules. Built dynamically from the xmlunicode-character-list and the xmlunicode-missing-list.")
+  "The default xml-input rules. Built dynamically from the xmlunicode-character-list.")
 
 (let ((ulist xmlunicode-iso8879-character-alist)
-      codepoint missing-glyph entname)
+      codepoint entname)
   (setq xml-quail-define-rules (list 'quail-define-rules))
   (while ulist
     (setq codepoint (cdr (car ulist)))
-    (setq missing-glyph (memq codepoint xmlunicode-missing-list))
     (setq entname (concat "&" (car (car ulist)) ";"))
     (cond
      ((= codepoint 34)
@@ -632,7 +627,7 @@ data if you want to preserve them."
      ((= codepoint 62)
       (nconc xml-quail-define-rules
 	     (list (list entname (vector "&gt;")))))
-     ((and (not missing-glyph) (decode-char 'ucs codepoint))
+     ((and (xmlunicode-displayable-character codepoint) (decode-char 'ucs codepoint))
       (nconc xml-quail-define-rules
 	     (list (list entname (decode-char 'ucs codepoint)))))
      (t
@@ -745,24 +740,32 @@ data if you want to preserve them."
 			  (cdr (assoc str xmlunicode-character-shortcut-alist))))
      (t (beep)))))
 
+(defun xmlunicode-displayable-character (codept)
+  "Test if the codepoint CODEPT is displayable.
+This test was arrived at by experimentation; it could be innacurate
+for some configurations."
+  (or (eq t (char-displayable-p codept))
+      (fontp (char-displayable-p codept))))
+
 (defun xmlunicode-show-character-list ()
   "Insert each Unicode character into a buffer.
 Let's you see which characters are available for literal display
 in your Emacs font."
   (let ((chars xmlunicode-character-list)
-	char codept name)
+	char codept name displayable)
     (while chars
       (setq char (car chars))
       (setq chars (cdr chars))
       (setq codept (car char))
       (setq name (cadr char))
-
       (if (< codept #xffff)
 	  (progn
+            (insert (if (xmlunicode-displayable-character codept)
+                        "Y "
+                      "  "))
 	    (insert (format "#x%06x " codept))
 	    (insert-char codept)
 	    (insert (format " %s\n" name)))))))
-
 
 (defun xmlunicode-make-helm-listitem (charlist)
   "Construct a helm list item for CHARLIST."
