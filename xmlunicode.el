@@ -10,8 +10,8 @@
 ;; Maintainer: Norman Walsh <ndw@nwalsh.com>
 ;; Contributor: Mark A. Hershberger <mah@everybody.org>
 ;; Created: 2004-07-21
-;; Updated: 2019-11-22
-;; Version: 1.19
+;; Updated: 2019-11-23
+;; Version: 1.20
 ;; Keywords: utf-8 unicode xml characters
 
 ;; This file is NOT part of GNU Emacs.
@@ -96,6 +96,9 @@
 
 ;;; Changes
 
+;; v1.20 23 Nov 2019
+;;   Fixed obvious typo in the name of the xmlunicode-iso8879-character-insert
+;;   function name. (The xmlunicode prefix was repeated.)
 ;; v1.19
 ;;   Moved defun before defvar (WTF?). *blush*
 ;; v1.18
@@ -259,7 +262,7 @@ character is inserted without the prompt."
 
 ;; Insert characters by iso8879 name
 
-(defun xmlunicode-xmlunicode-iso8879-character-insert (arg &optional argname)
+(defun xmlunicode-iso8879-character-insert (arg &optional argname)
   "Insert Unicode character ARG ISO 8879 entity name.
 If a prefix is given, the character will be inserted regardless
 of whether or not it has a displayable glyph; otherwise, a
