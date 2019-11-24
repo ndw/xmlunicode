@@ -61,17 +61,19 @@ to insert “é”. Or
 
 ** xmlunicode-smart-double-quote
 
-This function, which I bind to ~"~ in several modes, inserts the
-appropriate double quote. Called after a space, newline, or ">", it
-inserts a left double quote. Called after a double quote, it cycles
-through the three possible quote styles: left, straight, or right.
-Called anywhere else, it inserts a right double quote.
+This function, which I bind to the (double) quotation mark key in
+several modes, inserts the appropriate double quote. Called after a
+space, newline, or ">", it inserts a left double quote. Called after a
+double quote, it cycles through the three possible quote styles: left,
+straight, or right. Called anywhere else, it inserts a right double
+quote.
 
-In ~nxml-mode~, inside a start tag, it always inserts just a vanilla ~"~.
+In ~nxml-mode~, inside a start tag, it always inserts just a vanilla double quote.
 
 ** xmlunicode-smart-single-quote
 
-I bind this to ~'~ in several moves. It does just what you think it does.
+I bind this to the (single) quotation mark key in several moves. It
+does just what you think it does.
 
 ** xmlunicode-smart-hyphen
 
