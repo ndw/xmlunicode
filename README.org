@@ -54,7 +54,10 @@ character that way. Configure ~xmlunicode-character-shortcut-alist~ to
 change the mappings.
 
 for example, if this function is bound to ~C-t e~, I can type
-~C-t e e '~ to insert “é”. Or ~C-t e $ y~ to insert “¥”.
+~C-t e e '~
+to insert “é”. Or
+~C-t e $ y~
+ to insert “¥”.
 
 ** xmlunicode-smart-double-quote
 
