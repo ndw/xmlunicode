@@ -1,7 +1,5 @@
 ;;; xmlunicode.el --- Unicode support for XML -*- coding: utf-8 -*-
 
-;;; Commentary:
-
 ;; Copyright (C) 2003, 2015, 2016, 2019 Norman Walsh
 ;; Inspired in part by sgml-input, Copyright (C) 2001 Dave Love
 ;; Inspired in part by http://www.tbray.org/ongoing/When/200x/2003/09/27/UniEmacs
@@ -10,8 +8,8 @@
 ;; Maintainer: Norman Walsh <ndw@nwalsh.com>
 ;; Contributor: Mark A. Hershberger <mah@everybody.org>
 ;; Created: 2004-07-21
-;; Updated: 2019-11-23
-;; Version: 1.20
+;; Updated: 2019-11-24
+;; Version: 1.21
 ;; Keywords: utf-8 unicode xml characters
 
 ;; This file is NOT part of GNU Emacs.
@@ -31,7 +29,7 @@
 ;; Free Software Foundation, Inc., 59 Temple Place - Suite 330,
 ;; Boston, MA 02111-1307, USA.
 
-;;; Commentary
+;;; Commentary:
 
 ;; This file provides a suite of functions designed to make it easier
 ;; to enter Unicode into Emacs. It is not, in fact, particularly XML-specific though
@@ -65,8 +63,6 @@
 ;;
 ;;    xmlunicode-character-insert            insert a character by unicode name
 ;;                                           (with completion)
-;;    xmlunicode-character-insert-helm       insert a character by unicode name
-;;                                           using helm (with completion)
 ;;    xmlunicode-iso8879-character-insert    insert a character by ISO entity name
 ;;                                           (with completion)
 ;;    xmlunicode-smart-double-quote          inserts an appropriate double quote
@@ -74,6 +70,9 @@
 ;;    xmlunicode-character-menu-insert       choose special character from a popup menu
 ;;    xmlunicode-character-shortcut-insert   enter a two-character shortcut for a
 ;;                                           unicode character
+;;
+;;    Helm integration is provided in `xmlunicode-helm.el`. For helm,
+;;    use the function `xmlunicode-character-insert-helm`.
 ;;
 ;;    You can also create a standard Emacs menu for the character menu list
 ;;    (instead of, or in addition to, the popup). To do that:
@@ -96,6 +95,13 @@
 
 ;;; Changes
 
+;; v1.21 24 Nov 2019
+;;   Moved the helm-related functions into a separate file. Helm must be
+;;   setup before you can require 'xmlunicode-helm. This avoids an ugly bug
+;;   where (I infer) the byte compiled xmlunicode.el file did not have
+;;   a correct function reference for `helm-build-sync-source` so it didn't
+;;   work reliably.
+;;   I made a few small improvements to `xmlunicode-show-character-list`.
 ;; v1.20 23 Nov 2019
 ;;   Fixed obvious typo in the name of the xmlunicode-iso8879-character-insert
 ;;   function name. (The xmlunicode prefix was repeated.)
@@ -763,56 +769,30 @@ for some configurations."
 			  (cdr (assoc str xmlunicode-character-shortcut-alist))))
      (t (beep)))))
 
-(defun xmlunicode-show-character-list ()
-  "Insert each Unicode character into a buffer.
-Let's you see which characters are available for literal display
-in your Emacs font."
+(defun xmlunicode-show-character-list (&optional start end only-displayable)
+  "Insert each Unicode codepoint between START and END into a buffer.
+The default range is the BMP. If ONLY-DISPLAYABLE is t, only
+characters that are displayable will be shown. Let's you see
+which characters are available for literal display in your Emacs
+font."
   (let ((chars xmlunicode-character-list)
+        (first (if start start 0))
+        (last (if end end #xffff))
 	char codept name displayable)
     (while chars
       (setq char (car chars))
       (setq chars (cdr chars))
       (setq codept (car char))
       (setq name (cadr char))
-      (if (< codept #xffff)
-	  (progn
-            (insert (if (xmlunicode-displayable-character codept)
-                        "Y "
-                      "  "))
-	    (insert (format "#x%06x " codept))
-	    (insert-char codept)
-	    (insert (format " %s\n" name)))))))
-
-(defun xmlunicode-make-helm-listitem (charlist)
-  "Construct a helm list item for CHARLIST."
-  (let* ((char    (car charlist))
-         (uniname (cadr charlist))
-         (isoname (caddr charlist))
-         (charstr (if (and (> char 31) (characterp char))
-                      (string char)
-                    " "))
-         (isostr  (if isoname
-                      (concat " (" isoname ")")
-                    ""))
-         (cpstr   (if (> (length (format "%04X" char)) 4)
-                      (format " \\U%06X" char)
-                    (format " \\u%04X" char)))
-         (pad     (- 60 (length uniname) (length isostr)))
-         (padstr  (if (> pad 0)
-                      (make-string pad ?\s)
-                    "")))
-    (cons (concat (concat charstr " ") uniname isostr padstr cpstr) char)))
-
-(defun xmlunicode-character-insert-helm (arg)
-  "Insert unicode character ARG with helm completion."
-  (interactive "P")
-  (let ((item (helm :sources (helm-build-sync-source "Unicode Characters"
-                               :candidates (mapcar 'xmlunicode-make-helm-listitem
-                                                   xmlunicode-character-list))
-                    :prompt "Character name: "
-                    :buffer "*helm xlmunicode characters*")))
-    (if item
-        (xmlunicode-insert arg item))))
+      (setq displayable (xmlunicode-displayable-character codept))
+      (if (and (<= codept last) (>= codept first))
+          (if (or displayable (not only-displayable))
+              (progn
+                (if (not only-displayable)
+                    (insert (if displayable "Y " "  ")))
+                (insert (format "#x%06x " codept))
+                (insert-char codept)
+                (insert (format " %s\n" name))))))))
 
 (provide 'xmlunicode)
 ;;; xmlunicode.el ends here
