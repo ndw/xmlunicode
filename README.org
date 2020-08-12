@@ -134,6 +134,5 @@ I bind this to “C-t u”
 * Building your own character list
 
 The ~unicode-to-el.py~ script can be used to combine your own versions
-of ~[UnicodeData.txt](https://www.unicode.org/Public/12.1.0/ucd/UnicodeData.txt)~
+of ~[UnicodeData.txt](https://www.unicode.org/Public/14.0.0/ucd/UnicodeData-14.0.0d1.txt)~
 and ~ISONameList.txt~ into ~xmlunicode-character-list.el~.
-

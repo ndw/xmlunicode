@@ -1,6 +1,6 @@
 ;;; xmlunicode.el --- Unicode support for XML -*- coding: utf-8 -*-
 
-;; Copyright (C) 2003, 2015, 2016, 2019 Norman Walsh
+;; Copyright (C) 2003, 2015, 2016, 2019, 2020 Norman Walsh
 ;; Inspired in part by sgml-input, Copyright (C) 2001 Dave Love
 ;; Inspired in part by http://www.tbray.org/ongoing/When/200x/2003/09/27/UniEmacs
 
@@ -8,8 +8,8 @@
 ;; Maintainer: Norman Walsh <ndw@nwalsh.com>
 ;; Contributor: Mark A. Hershberger <mah@everybody.org>
 ;; Created: 2004-07-21
-;; Updated: 2019-11-24
-;; Version: 1.21
+;; Updated: 2020-08-11
+;; Version: 1.22
 ;; Keywords: utf-8 unicode xml characters
 
 ;; This file is NOT part of GNU Emacs.
@@ -95,6 +95,10 @@
 
 ;;; Changes
 
+;; v1.22 11 Aug 2020
+;;   Fixed a bug in xmlunicode-in-comment where it would mistake the
+;;   beginning of a CDATA section for the start of a comment.
+;;   Removed deprecated 'cl package.
 ;; v1.21 24 Nov 2019
 ;;   Moved the helm-related functions into a separate file. Helm must be
 ;;   setup before you can require 'xmlunicode-helm. This avoids an ugly bug
@@ -167,8 +171,6 @@
 ;;   First release. Nearly a complete rewrite from the former xmlchars.el file
 
 ;;; Code:
-
-(eval-when-compile (require 'cl))
 
 (defvar xmlunicode-ldquo  (decode-char 'ucs #x00201c))
 (defvar xmlunicode-rdquo  (decode-char 'ucs #x00201d))
@@ -422,7 +424,7 @@ predefined entities."
 	    0))
     (setq pgt (search-backward "-->" slim t))
     (goto-char here)
-    (setq pcmt (search-backward "<!" slim t))
+    (setq pcmt (search-backward "<!--" slim t))
     (goto-char here)
     (if (and pgt pcmt)
 	(> pcmt pgt)
