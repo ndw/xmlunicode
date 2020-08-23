@@ -8,8 +8,8 @@
 ;; Maintainer: Norman Walsh <ndw@nwalsh.com>
 ;; Contributor: Mark A. Hershberger <mah@everybody.org>
 ;; Created: 2004-07-21
-;; Updated: 2020-08-11
-;; Version: 1.22
+;; Updated: 2020-08-23
+;; Version: 1.23
 ;; Keywords: utf-8 unicode xml characters
 
 ;; This file is NOT part of GNU Emacs.
@@ -95,6 +95,13 @@
 
 ;;; Changes
 
+;; v1.23 23 Aug 2020
+;;   Fixed bug where xmlunicode-smart-hyphen didn't recognize the
+;;   context "<!-" as the beginning of a comment and therefore that
+;;   another "-" should be inserted rather than replacing the hyphen
+;;   with an emdash. This was a consequence of changing
+;;   xmlunicode-in-comment so that a bare "<!" wasn't recognized as
+;;   the start of a comment.
 ;; v1.22 11 Aug 2020
 ;;   Fixed a bug in xmlunicode-in-comment where it would mistake the
 ;;   beginning of a CDATA section for the start of a comment.
@@ -524,11 +531,17 @@ data if you want to preserve them."
   "Insert a hyphen, mdash, or ndash as appropriate. A hyphen, an mdash, and then an ndash is inserted."
   (interactive)
   (let ((pchar (char-before))
-        (ppchar (char-before (- (point) 1))))
+        (ppchar (char-before (1- (point))))
+        (pppchar (char-before (- (point) 2))))
     (cond
      ((eq nil pchar)
       (insert "-"))
-     ((and (char-equal pchar ?-) (or (eq nil ppchar) (char-equal ppchar ?-)))
+     ((and (char-equal pchar ?-)
+           (or (eq nil ppchar) (char-equal ppchar ?-)))
+      (insert "-"))
+     ((and (char-equal pchar ?-)
+           (char-equal ppchar ?!)
+           (char-equal pppchar ?<))
       (insert "-"))
      ((xmlunicode-in-comment)
       (insert "-"))
