@@ -205,14 +205,32 @@
 (defvar xmlunicode-character-alist '()
   "Mapping of Unicode character names to codepoints.")
 
+(defun xmlunicode-displayable-character (codept)
+  "Test if the codepoint CODEPT is displayable.
+This test was arrived at by experimentation; it could be innacurate
+for some configurations."
+  (or (eq t (char-displayable-p codept))
+      (fontp (char-displayable-p codept))))
+
 (let ((ulist xmlunicode-character-list))
-  (setq xmlunicode-character-alist
-	(list (cons (cadr (car ulist)) (car (car ulist)))))
-  (setq ulist (cdr ulist))
+  (setq xmlunicode-character-alist '())
   (while ulist
-    (nconc xmlunicode-character-alist
-	   (list (cons (cadr (car ulist)) (car (car ulist)))))
-    (setq ulist (cdr ulist))))
+    (let* ((codepoint (car (car ulist)))
+           (uname (if (< (length (cadr (car ulist))) 40)
+                      (substring (concat (cadr (car ulist)) "                                        ") 0 40)
+                    (cadr (car ulist))))
+           (xname (caddr (car ulist)))
+           (dname (if xname
+                      (concat uname " (&" xname ";)")
+                    uname))
+           (hname (format "&#x%04x;" codepoint))
+           (display (if (xmlunicode-displayable-character codepoint)
+                        (concat dname " " hname " " (format "%c" (decode-char 'ucs codepoint)))
+                      (concat dname "  " hname))))
+      (if (not xmlunicode-character-alist)
+          (setq xmlunicode-character-alist (list (cons display codepoint)))
+        (nconc xmlunicode-character-alist (list (cons display codepoint))))
+    (setq ulist (cdr ulist)))))
 
 (defvar xmlunicode-iso8879-character-alist '()
   "Mapping of ISO 8879 entity names names to codepoints.")
@@ -629,13 +647,6 @@ data if you want to preserve them."
          (t
           (insert ";"))))
     (insert ";")))
-
-(defun xmlunicode-displayable-character (codept)
-  "Test if the codepoint CODEPT is displayable.
-This test was arrived at by experimentation; it could be innacurate
-for some configurations."
-  (or (eq t (char-displayable-p codept))
-      (fontp (char-displayable-p codept))))
 
 ;; Setup quail for XML mode
 
