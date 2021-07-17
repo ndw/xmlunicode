@@ -8,8 +8,8 @@
 ;; Maintainer: Norman Walsh <ndw@nwalsh.com>
 ;; Contributor: Mark A. Hershberger <mah@everybody.org>
 ;; Created: 2004-07-21
-;; Updated: 2020-08-23
-;; Version: 1.23
+;; Updated: 2021-07-17
+;; Version: 1.24
 ;; Keywords: utf-8 unicode xml characters
 
 ;; This file is NOT part of GNU Emacs.
@@ -95,6 +95,14 @@
 
 ;;; Changes
 
+;; v1.24 17 Jul 2021
+;;   Changed the format of the xmlunicode-character-alist so that it's
+;;   more useful for searching by adding the XML entity name and the
+;;   hex codepoint to the displayed string. The performance of
+;;   computing that alist is kind of bad, but I'm not sure how to
+;;   improve it. In the meantime, I've reworked things so that it's
+;;   only computed when it's first used, so you don't pay the cost at
+;;   startup time.
 ;; v1.23 23 Aug 2020
 ;;   Fixed bug where xmlunicode-smart-hyphen didn't recognize the
 ;;   context "<!-" as the beginning of a comment and therefore that
@@ -202,33 +210,38 @@
 (unless (boundp 'xmlunicode-character-list)
   (require 'xmlunicode-character-list))
 
-(defvar xmlunicode-character-alist '()
+(defvar _xmlunicode-character-alist '()
   "Mapping of Unicode character names to codepoints.")
 
 (defun xmlunicode-displayable-character (codept)
   "Test if the codepoint CODEPT is displayable.
 This test was arrived at by experimentation; it could be innacurate
-for some configurations."
+for some configurations. Note: char-displayable-p is really slow!"
   (or (eq t (char-displayable-p codept))
       (fontp (char-displayable-p codept))))
 
-(let ((ulist xmlunicode-character-list))
-  (setq xmlunicode-character-alist '())
-  (while ulist
-    (let* ((codepoint (car (car ulist)))
-           (uname (if (< (length (cadr (car ulist))) 40)
-                      (substring (concat (cadr (car ulist)) "                                        ") 0 40)
-                    (cadr (car ulist))))
-           (xname (caddr (car ulist)))
-           (dname (if xname
-                      (concat uname " (&" xname ";)")
-                    uname))
-           (hname (format "&#x%04x;" codepoint))
-           (display (concat dname " " hname " " (format "%c" (decode-char 'ucs codepoint)))))
-      (if (not xmlunicode-character-alist)
-          (setq xmlunicode-character-alist (list (cons display codepoint)))
-        (nconc xmlunicode-character-alist (list (cons display codepoint))))
-    (setq ulist (cdr ulist)))))
+(defun xmlunicode-character-alist ()
+  (if _xmlunicode-character-alist
+      _xmlunicode-character-alist
+    (progn
+      (let ((ulist xmlunicode-character-list))
+        (setq _xmlunicode-character-alist '())
+        (while ulist
+          (let* ((codepoint (car (car ulist)))
+                 (uname (if (< (length (cadr (car ulist))) 40)
+                            (substring (concat (cadr (car ulist)) "                                        ") 0 40)
+                          (cadr (car ulist))))
+                 (xname (caddr (car ulist)))
+                 (dname (if xname
+                            (concat uname " (&" xname ";)")
+                          uname))
+                 (hname (format "&#x%04x;" codepoint))
+                 (display (concat dname " " hname " " (format "%c" (decode-char 'ucs codepoint)))))
+            (if (not _xmlunicode-character-alist)
+                (setq _xmlunicode-character-alist (list (cons display codepoint)))
+              (nconc _xmlunicode-character-alist (list (cons display codepoint))))
+            (setq ulist (cdr ulist))))
+        _xmlunicode-character-alist))))
 
 (defvar xmlunicode-iso8879-character-alist '()
   "Mapping of ISO 8879 entity names names to codepoints.")
@@ -263,7 +276,7 @@ This is a convenience function for defining the glyph list."
     (setq codepoint-list (list 0))
     (while unilist
       (nconc codepoint-list
-	     (list (cdr (assoc (car unilist) xmlunicode-character-alist))))
+	     (list (cdr (assoc (car unilist) (xmlunicode-character-alist)))))
       (setq unilist (cdr unilist)))
     (cdr codepoint-list)))
 
@@ -281,14 +294,14 @@ character is inserted without the prompt."
   (let* ((completion-ignore-case t)
 	 (uniname (if (stringp argname) argname ""))
 	 (charname
-	  (if (eq (try-completion uniname xmlunicode-character-alist) t)
+	  (if (eq (try-completion uniname (xmlunicode-character-alist)) t)
 	      uniname
 	    (completing-read
 	     "Unicode name: "
-	     xmlunicode-character-alist
+	     (xmlunicode-character-alist)
 	     nil t uniname)))
 	 codepoint glyph)
-    (setq codepoint (cdr (assoc charname xmlunicode-character-alist)))
+    (setq codepoint (cdr (assoc charname (xmlunicode-character-alist))))
     (xmlunicode-insert arg codepoint)))
 
 ;; Insert characters by iso8879 name
