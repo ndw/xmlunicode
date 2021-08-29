@@ -9,7 +9,7 @@
 ;; Contributor: Mark A. Hershberger <mah@everybody.org>
 ;; Created: 2004-07-21
 ;; Updated: 2021-07-17
-;; Version: 1.24
+;; Version: 1.25
 ;; Keywords: utf-8 unicode xml characters
 
 ;; This file is NOT part of GNU Emacs.
@@ -95,6 +95,10 @@
 
 ;;; Changes
 
+;; v1.25 29 Aug 2021
+;;   Added a progress message when loading the xmlunicode-character-alist.
+;;   Fixed a few docstrings.
+;;   Updated to Unicode 14.0.0d13.
 ;; v1.24 17 Jul 2021
 ;;   Changed the format of the xmlunicode-character-alist so that it's
 ;;   more useful for searching by adding the XML entity name and the
@@ -216,17 +220,24 @@
 (defun xmlunicode-displayable-character (codept)
   "Test if the codepoint CODEPT is displayable.
 This test was arrived at by experimentation; it could be innacurate
-for some configurations. Note: char-displayable-p is really slow!"
+for some configurations. Note: 'char-displayable-p' is really slow!"
   (or (eq t (char-displayable-p codept))
       (fontp (char-displayable-p codept))))
 
 (defun xmlunicode-character-alist ()
+  "Load the Unicode character database into an alist."
   (if _xmlunicode-character-alist
       _xmlunicode-character-alist
     (progn
-      (let ((ulist xmlunicode-character-list))
+      (let ((ulist xmlunicode-character-list)
+            (total (length xmlunicode-character-list))
+            (count 0))
         (setq _xmlunicode-character-alist '())
         (while ulist
+          (if (= (mod count 5000) 0)
+              (message
+               (format "Loading XML Unicode character list...%d/%d" count total)))
+          (setq count (+ count 1))
           (let* ((codepoint (car (car ulist)))
                  (uname (if (< (length (cadr (car ulist))) 40)
                             (substring (concat (cadr (car ulist)) "                                        ") 0 40)
