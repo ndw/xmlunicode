@@ -8,8 +8,8 @@
 ;; Maintainer: Norman Walsh <ndw@nwalsh.com>
 ;; Contributor: Mark A. Hershberger <mah@everybody.org>
 ;; Created: 2004-07-21
-;; Updated: 2021-07-17
-;; Version: 1.25
+;; Updated: 2023-08-20
+;; Version: 1.26
 ;; Keywords: utf-8 unicode xml characters
 
 ;; This file is NOT part of GNU Emacs.
@@ -95,6 +95,11 @@
 
 ;;; Changes
 
+;; v1.26 20 Aug 2023
+;;   Fixed some docstring errors.
+;;   Improved "smart" quoting functions to avoid smart features in YAML files
+;;   and Org mode source blocks.
+;;   Updated xmlunicode-character-list.el to the latest UnicodeDatabase.txt
 ;; v1.25 29 Aug 2021
 ;;   Added a progress message when loading the xmlunicode-character-alist.
 ;;   Fixed a few docstrings.
@@ -220,7 +225,7 @@
 (defun xmlunicode-displayable-character (codept)
   "Test if the codepoint CODEPT is displayable.
 This test was arrived at by experimentation; it could be innacurate
-for some configurations. Note: 'char-displayable-p' is really slow!"
+for some configurations. Note: \='char-displayable-p\=' is really slow!"
   (or (eq t (char-displayable-p codept))
       (fontp (char-displayable-p codept))))
 
@@ -411,7 +416,8 @@ predefined entities."
   "A menu map for inserting Unicode characters.")
 
 (defun xmlunicode-make-character-menu-bar ()
-  "Builds the xmlunicode-character-menu-map for the currently defined xmlunicode-character-menu-alist."
+  "Builds the xmlunicode-character-menu-map for the currently
+ defined xmlunicode-character-menu-alist."
   (let ((alist (reverse xmlunicode-character-menu-alist))
 	name codepoint)
     (setq xmlunicode-character-menu-map (make-sparse-keymap "UniChar"))
@@ -491,14 +497,29 @@ data if you want to preserve them."
 
 ;; Smart quotes
 
+(defun xmlunicode--be-stupid ()
+  "In Org mode source blocks, don't be smart. Also, the Yaml mode(s)
+seem to be derived from text-mode so turn off smart things in
+there too."
+  (let ((org (derived-mode-p 'org-mode))      ; Only do ORG tests in ORG modes
+        (yaml (or (derived-mode-p 'yaml-mode) ; Only do YAML tests in YAML modes
+                  (derived-mode-p 'yaml-ts-mode))))
+    (or yaml (and org (org-in-src-block-p)))))
+
 (defun xmlunicode-smart-double-quote ()
-  "Insert a left or right double quote as appropriate. Left quotes are inserted after a space, newline, or start tag. Right quotes are inserted after any other character, except if the preceding character is a quote, in which case we cycle through the three quote styles."
+  "Insert a left or right double quote as appropriate. Left
+ quotes are inserted after a space, newline, or start tag. Right
+ quotes are inserted after any other character, except if the
+ preceding character is a quote, in which case we cycle through
+ the three quote styles."
   (interactive)
   (let ((ch (char-before))
         (xml (derived-mode-p 'nxml-mode))) ; only do XML tests in XML modes
     (cond
      ((eq nil ch)
       (insert xmlunicode-ldquo))
+     ((xmlunicode--be-stupid)
+      (insert "\""))
      ((and xml (xmlunicode-in-start-tag))
       (insert "\""))
      ((or
@@ -534,13 +555,19 @@ data if you want to preserve them."
      (t (insert xmlunicode-rdquo)))))
 
 (defun xmlunicode-smart-single-quote ()
-  "Insert a left or right single quote, or an apostrophe, as appropriate. Left quotes are inserted after a space, newline, or start tag. An apostrophe is inserted after any other character, except if the preceding character is a quote or apostrophe, in which case we cycle through the styles."
+  "Insert a left or right single quote, or an apostrophe, as
+ appropriate. Left quotes are inserted after a space, newline, or
+ start tag. An apostrophe is inserted after any other character,
+ except if the preceding character is a quote or apostrophe, in
+ which case we cycle through the styles."
   (interactive)
   (let ((ch (char-before))
         (xml (derived-mode-p 'nxml-mode))) ; only do XML tests in XML modes
     (cond
      ((eq nil ch)
       (insert xmlunicode-lsquo))
+     ((xmlunicode--be-stupid)
+      (insert "'"))
      ((and xml (xmlunicode-in-start-tag))
       (insert "'"))
      ((or
@@ -568,13 +595,16 @@ data if you want to preserve them."
      (t (insert xmlunicode-default-single-quote)))))
 
 (defun xmlunicode-smart-hyphen ()
-  "Insert a hyphen, mdash, or ndash as appropriate. A hyphen, an mdash, and then an ndash is inserted."
+  "Insert a hyphen, mdash, or ndash as appropriate. A hyphen, an
+ mdash, and then an ndash is inserted."
   (interactive)
   (let ((pchar (char-before))
         (ppchar (char-before (1- (point))))
         (pppchar (char-before (- (point) 2))))
     (cond
      ((eq nil pchar)
+      (insert "-"))
+     ((xmlunicode--be-stupid)
       (insert "-"))
      ((and (char-equal pchar ?-)
            (or (eq nil ppchar) (char-equal ppchar ?-)))
@@ -611,6 +641,8 @@ data if you want to preserve them."
         (xml (derived-mode-p 'nxml-mode))) ; only do XML tests in XML modes
     (cond
      ((eq nil ch1)
+      (insert "."))
+     ((xmlunicode--be-stupid)
       (insert "."))
      ((and xml (xmlunicode-in-comment))
       (insert "."))
@@ -680,7 +712,8 @@ data if you want to preserve them."
  nil t nil nil nil nil nil nil nil nil t)
 
 (defvar xml-quail-define-rules '()
-  "The default xml-input rules. Built dynamically from the xmlunicode-character-list.")
+  "The default xml-input rules. Built dynamically from the
+ xmlunicode-character-list.")
 
 (let ((ulist xmlunicode-iso8879-character-alist)
       codepoint entname)
@@ -803,7 +836,8 @@ data if you want to preserve them."
    (cons "$e"  (cdr (assoc "euro"   xmlunicode-iso8879-character-alist)))
    (cons "$p"  (cdr (assoc "pound"  xmlunicode-iso8879-character-alist)))
    (cons "$y"  (cdr (assoc "yen"    xmlunicode-iso8879-character-alist))))
-  "Defines a list of two-character shortcuts for keyboard entry of Unicode characters.")
+  "Defines a list of two-character shortcuts for keyboard entry
+ of Unicode characters.")
 
 (defun xmlunicode-character-shortcut-insert ()
   "Read a (two-character) keyboard shortcut and insert the corresponding character."

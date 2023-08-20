@@ -12,8 +12,14 @@ useful.
 You're most likely going to want to bind some or all of them to keys.
 
 * Functions
+:PROPERTIES:
+:CUSTOM_ID: h-1360DA90-BD78-4078-9766-3C00938A8024
+:END:
 
 ** xmlunicode-character-insert
+:PROPERTIES:
+:CUSTOM_ID: h-B9A9513B-6931-43C0-9024-05DFDBB966C1
+:END:
 
 Insert a Unicode character by character name. If a prefix is given,
 the character will be inserted regardless of whether or not it has a
@@ -26,6 +32,9 @@ beyond for inserting Unicode. But the numeric character reference
 support still adds some value, IMHO.
 
 ** xmlunicode-iso8879-character-insert
+:PROPERTIES:
+:CUSTOM_ID: h-3AC26E79-5FFA-4A50-9F6F-EC6E31144CEF
+:END:
 
 Insert a Unicode character by ISO 8879 entity name. If a prefix is
 given, the character will be inserted regardless of whether or not it
@@ -34,6 +43,9 @@ inserted if the codepoint is not displayable according to
 ~xmlunicode-character-displayable~.
 
 ** xmlunicode-character-menu-insert
+:PROPERTIES:
+:CUSTOM_ID: h-E80BB1A2-3E17-4F0C-8CE7-E30D2F1DE603
+:END:
 
 Pops up a menu of special characters. Configure
 ~xmlunicode-character-menu-alist~ to change the list.
@@ -47,6 +59,9 @@ bar pulldown menu:
 #+END_SRC
 
 ** xmlunicode-character-shortcut-insert
+:PROPERTIES:
+:CUSTOM_ID: h-CF8767C4-8C9A-4E54-8BE4-3531864B848F
+:END:
 
 This function provides access to all the ISO Latin 1 accented
 characters. It reads two more keystrokes and composes the approprate
@@ -60,6 +75,9 @@ to insert “é”. Or
  to insert “¥”.
 
 ** xmlunicode-smart-double-quote
+:PROPERTIES:
+:CUSTOM_ID: h-0C8B6552-FF7B-42E6-8A6D-4F3F65DCE82D
+:END:
 
 This function, which I bind to the (double) quotation mark key in
 several modes, inserts the appropriate double quote. Called after a
@@ -71,22 +89,34 @@ quote.
 In ~nxml-mode~, inside a start tag, it always inserts just a vanilla double quote.
 
 ** xmlunicode-smart-single-quote
+:PROPERTIES:
+:CUSTOM_ID: h-FC1582F1-592D-4E9E-A3E8-B63A033EFE40
+:END:
 
 I bind this to the (single) quotation mark key in several moves. It
 does just what you think it does.
 
 ** xmlunicode-smart-hyphen
+:PROPERTIES:
+:CUSTOM_ID: h-7A563959-62A3-441E-B06C-02CA7D39950A
+:END:
 
 I bind this to ~-~ in several modes. It cycles through dash, mdash, and
 ndash characters. If there are already two consecutive ~-~ preceding point,
 it just inserts another ~-~.
 
 ** xmlunicode-smart-period
+:PROPERTIES:
+:CUSTOM_ID: h-D01593AD-3AFF-4F04-8130-C1FCB6A9A5C7
+:END:
 
 I bind this to ~.~ in several modes. It replaces three consecutive
 periods with an ellipsis, ~…~.
 
 ** xmlunicode-smart-semicolon
+:PROPERTIES:
+:CUSTOM_ID: h-B654FA86-C50E-4711-A785-D2E5E72AB25F
+:END:
 
 I bind this to ~;~ in ~nxml-mode~. It has the following effect: if the
 characters that precede the semicolon are an ampersand followed by an ISO
@@ -97,6 +127,9 @@ For example, if I type ~&ntilde~ and then ~;~, a Unicode ~ñ~ is inserted.
 It happens that I still remember a lot of the ISO entity names.
 
 ** xmlunicode-show-character-list
+:PROPERTIES:
+:CUSTOM_ID: h-CB68BCA6-FD3F-4638-A31D-DFA4F506A755
+:END:
 
 You can't bind this one to a key, just run it in your ~*scratch*~
 buffer. It inserts all the Unicode characters. This allows you to see
@@ -118,12 +151,18 @@ suppress non-displayable characters.
 Note: this function takes a while to run.
 
 * Helm functions
+:PROPERTIES:
+:CUSTOM_ID: h-3438C4A9-9135-4CBB-8103-107CB9B651D9
+:END:
 
 There is a helm-integrated version of ~xmlunicode-character-insert~, it is called
 ~xmlunicode-character-insert-helm~. To use this version, you must load the
 ~xmlunicode-helm.el~ library.
 
 ** xmlunicode-character-insert-helm
+:PROPERTIES:
+:CUSTOM_ID: h-1F3F6372-7919-4D5F-B8E7-20E10A3129AD
+:END:
 
 A Helm version of ~xmlunicode-character-insert~. It supports searching
 for the characters by Unicode name or ISO entity name as well as by
@@ -132,9 +171,13 @@ code point.
 I bind this to “C-t u”
 
 * Building your own character list
+:PROPERTIES:
+:CUSTOM_ID: h-C65479C0-39E3-4021-BF4C-F2564C5CC8C4
+:END:
 
 The ~unicode-to-el.py~ script can be used to combine your own version
 of “UnicodeData-X.Y.ZdR.txt” and ~ISONameList.txt~ into
 ~xmlunicode-character-list.el~.
 
-At the time of this writing, [[https://www.unicode.org/Public/14.0.0/ucd/UnicodeData-14.0.0d13.txt][UnicodeData-14.0.0d13.txt]] is available.
+You probably want to start with the most recent version of the
+[[https://www.unicode.org/Public/UCD/latest/ucd/UnicodeData.txt][Unicode character database]].
